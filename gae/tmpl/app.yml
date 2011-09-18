@@ -1,0 +1,13 @@
+application: tanargle
+version: 1
+runtime: python
+api_version: 1
+
+handlers:
+- url: /(.*\.(xml|css|js|gif|png|jpg|swf))
+  static_files: static/\1
+  upload: static/(.*\.(xml|css|js|gif|png|jpg|swf))
+
+- url: /.*
+  script: handler.py
+

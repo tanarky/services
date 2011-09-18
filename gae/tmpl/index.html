@@ -1,0 +1,48 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <title>sample appengine</title>
+  <link rel="stylesheet" href="http://yui.yahooapis.com/2.7.0/build/reset-fonts-grids/reset-fonts-grids.css" type="text/css">
+</head>
+<body>
+
+<div id="doc2" class="yui-t6">
+   <div id="hd">
+     <div style="float:left">
+       <h1>sample</h1>
+     </div>
+     <div style="float:left;margin-left:10px">
+       {% if user %}
+       <p style="">Hello, <b>{{ user }}</b></p>
+       {% else %}
+       <p style="">Hello, <b>Guest User</b></p>
+       {% endif %}
+       <p>[ <a href="{{ url }}">{{ url_linktext }}</a> ]</p>
+     </div>
+   </div>
+   <div id="bd">
+     <div id="yui-main"> 
+       <div class="yui-b">
+         <div class="yui-g">
+           <!-- center -->
+           {{ config_user }}:{{ config_pass }}
+         </div>
+       </div>
+     </div>
+     <div class="yui-b">
+       <!-- navi -->
+     </div>
+   </div>
+   <div id="ft">
+     <br>
+   </div>
+</div>
+<div>
+  <div id="footer">
+    <!-- footer -->
+  </div>
+</div>
+
+</body>
+</html>
