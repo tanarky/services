@@ -1,0 +1,71 @@
+========================================
+oauth sample
+========================================
+
+how to test
+========================================
+
+.. sourcecode: shell
+  
+  (myproject)/home/satoshi/github/services/gae/oauth% nosetests --with-gae -v
+  testBuildAndParse1 (test.TanarkyTestCase) ... ok
+  testBuildAndParse2 (test.TanarkyTestCase) ... ok
+  testBuildAndParse3 (test.TanarkyTestCase) ... ok
+  testBuildAndParse1 (test_model.TanarkyCookie) ... ok
+  testSome (test_model.TanarkyModel) ... ok
+  
+  ----------------------------------------------------------------------
+  Ran 5 tests in 0.202s
+  
+  OK
+
+cookie
+========================================
+
+- L
+
+  - login cookie
+
+    - id
+    - name
+    - *expire
+    - *signature
+
+URL
+========================================
+
+- 必須
+
+  - /        : home画面
+  - /config  : 設定(言語・OAuth・名前など)
+
+- サービスごと
+
+  - /offer   : 誰かに勝負を挑む
+  - /receive : 勝負を受ける
+  - /history : 戦績
+
+- login/logout
+
+  - /facebook/login
+  - /facebook/callback
+  - /twitter/login
+  - /twitter/callback
+  - /logout
+
+templates
+========================================
+
+- tmpl/guest.html : 未ログインユーザ用ページ
+- tmpl/home.html  : ログインユーザ用ホームページ
+- tmpl/conf.html  : 設定ページ
+
+Class
+========================================
+
+- Cookie
+
+
+Model
+========================================
+
