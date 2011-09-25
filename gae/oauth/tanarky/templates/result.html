@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>じゃんけんSNS</title>
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le styles -->
+    <link href="/static/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/style.css" rel="stylesheet">
+  </head>
+
+  <body>
+    {% include 'topbar.html' %}
+
+    <div class="container">
+      <div class="row">
+
+<div class="span16">
+
+<form action="/result" method="GET">
+  <fieldset>
+  <div class="alert-message block-message success">
+    <legend>あなたが勝利しました！</legend>
+  </div>
+  <div class="alert-message block-message warning">
+    <legend>引き分けです！</legend>
+  </div>
+  <div class="alert-message block-message error">
+    <legend>あなたは敗北しました！</legend>
+  </div>
+
+    <div class="clearfix">
+      <label>あなたの今の気持ち</label>
+      <div class="input">
+        <input id="input1" size="30" type="text" class="xlarge" name="input1">
+      </div>
+    </div>
+
+    <div class="clearfix">
+      <label>結果を</label>
+      <div class="input">
+        <ul class="inputs-list">
+          <li>
+            <label>
+              <input type="radio" value="yes" name="optionsRadios" checked="on">
+              <span>つぶやく</span>
+            </label>
+          </li>
+          <li>
+            <label>
+              <input type="radio" value="no" name="optionsRadios">
+              <span>つぶやかない</span>
+            </label>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div class="actions">
+      <a class="btn" href="/">このまま逃げる</a>
+      <input class="btn primary" type="submit" value="もう一度勝負する">
+    </div>
+  </fieldset>
+</form>
+
+
+</div>
+
+      </div>
+
+      {% include 'footer.html' %}
+
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.0/jquery.min.js"></script>
+<script src="/static/bootstrap-twipsy.js"></script>
+<script>
+google.load("visualization", "1", {packages:["corechart"]});
+  //google.setOnLoadCallback(drawChart);
+  //google.setOnLoadCallback(drawChart2);
+
+$(function () {
+  $("a[rel=twipsy]").twipsy({
+    live: true
+  });
+
+  function drawChart() {
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Task');
+    data.addColumn('number', 'Hours per Day');
+    data.addRows(5);
+    data.setValue(0, 0, 'Work');
+    data.setValue(0, 1, 11);
+    data.setValue(1, 0, 'Eat');
+    data.setValue(1, 1, 2);
+    data.setValue(2, 0, 'Commute');
+    data.setValue(2, 1, 2);
+    data.setValue(3, 0, 'Watch TV');
+    data.setValue(3, 1, 2);
+    data.setValue(4, 0, 'Sleep');
+    data.setValue(4, 1, 7);
+  
+    var chart = new google.visualization.PieChart(document.getElementById('chart_div'));
+    chart.draw(data, {width: 300, height: 200, title: 'My Daily Activities'});
+  }
+  function drawChart2() {
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Task');
+    data.addColumn('number', 'Hours per Day');
+    data.addRows(5);
+    data.setValue(0, 0, 'グー');
+    data.setValue(0, 1, 11);
+    data.setValue(1, 0, 'チョキ');
+    data.setValue(1, 1, 2);
+    data.setValue(2, 0, 'パー');
+    data.setValue(2, 1, 2);
+  
+    var chart = new google.visualization.PieChart(document.getElementById('chart_div2'));
+    chart.draw(data, {width: 300, height: 200, title: 'My Daily Activities'});
+  }
+
+  drawChart();
+  drawChart2();
+})
+</script>
+    </div> <!-- /container -->
+  </body>
+</html>

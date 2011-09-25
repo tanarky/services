@@ -23,11 +23,18 @@ class TanarkyCookie(unittest.TestCase):
         assert c.get("main_sid") == 1
         assert c.get("facebook_uid") == user["facebook_uid"]
 
-#class TanarkyModelTest(GAETestBase):
 class TanarkyModel(unittest.TestCase):
     def testSome(self):
-        user = tanarky.model.User(sid=1,
-                                  uid="abc",
-                                  name="tanarky")
-        print user
-        assert True
+        sid  = 1
+        uid  = "abc"
+        name = "tanarky"
+        key  = str(sid) + uid
+        user1 = tanarky.model.User(
+            key_name=key,
+            sid=sid,
+            uid=uid,
+            name=name)
+        assert user1.put()
+        user2 = tanarky.model.User.get_by_key_name(key)
+        assert user2.sid == sid
+

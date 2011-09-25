@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>じゃんけんSNS</title>
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le styles -->
+    <link href="/static/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/style.css" rel="stylesheet">
+
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+
+  </head>
+
+  <body>
+    {% include 'topbar.html' %}
+
+    <div class="container">
+
+      <div class="row">
+
+        {% include 'alert.html' %}
+
+        <div class="span16">
+          <ul class="tabs">
+            <li><a href="/">Home</a></li>
+            <li class="active"><a>Facebook</a></li>
+            <li><a href="/twitter">Twitter</a></li>
+          </ul>
+        </div>
+
+        <div class="span11">
+          <h2>Facebookの友達とじゃんけん！</h2>
+          {% for f in friends %}
+          {% include 'friend.html' %}
+          {% endfor %}
+
+          <div class="row">
+            <div class="span11">
+              <div class="pagination">
+                <ul>
+                  <li class="prev disabled"><a href="#">&larr; Previous</a></li>
+                  <li class="active"><a href="#">1</a></li>
+                  <li><a href="#">2</a></li>
+                  <li><a href="#">3</a></li>
+                  <li><a href="#">4</a></li>
+                  <li><a href="#">5</a></li>
+                  <li class="next"><a href="#">Next &rarr;</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="span5">
+          {% include 'ad_250x250.html' %}
+          <br>
+          <h3>統計情報</h3>
+          <h4>勝率</h4>
+          <div id="chart_div"></div>
+
+          <h4>あなたが出している手</h4>
+          <div id="chart_div2"></div>
+        </div>
+      </div>
+
+      {% include 'footer.html' %}
+
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.0/jquery.min.js"></script>
+<script src="/static/bootstrap-twipsy.js"></script>
+<script>
+google.load("visualization", "1", {packages:["corechart"]});
+  //google.setOnLoadCallback(drawChart);
+  //google.setOnLoadCallback(drawChart2);
+
+$(function () {
+  $("a[rel=twipsy]").twipsy({
+    live: true
+  });
+
+  function drawChart() {
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Task');
+    data.addColumn('number', 'Hours per Day');
+    data.addRows(5);
+    data.setValue(0, 0, 'Work');
+    data.setValue(0, 1, 11);
+    data.setValue(1, 0, 'Eat');
+    data.setValue(1, 1, 2);
+    data.setValue(2, 0, 'Commute');
+    data.setValue(2, 1, 2);
+    data.setValue(3, 0, 'Watch TV');
+    data.setValue(3, 1, 2);
+    data.setValue(4, 0, 'Sleep');
+    data.setValue(4, 1, 7);
+  
+    var chart = new google.visualization.PieChart(document.getElementById('chart_div'));
+    chart.draw(data, {width: 300, height: 200, title: 'My Daily Activities'});
+  }
+  function drawChart2() {
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Task');
+    data.addColumn('number', 'Hours per Day');
+    data.addRows(5);
+    data.setValue(0, 0, 'グー');
+    data.setValue(0, 1, 11);
+    data.setValue(1, 0, 'チョキ');
+    data.setValue(1, 1, 2);
+    data.setValue(2, 0, 'パー');
+    data.setValue(2, 1, 2);
+  
+    var chart = new google.visualization.PieChart(document.getElementById('chart_div2'));
+    chart.draw(data, {width: 300, height: 200, title: 'My Daily Activities'});
+  }
+
+  drawChart();
+  drawChart2();
+})
+</script>
+    </div> <!-- /container -->
+  </body>
+</html>

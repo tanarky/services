@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os, logging, urllib, urllib2, time, hmac, cgi, Cookie, email, hashlib
 
 import tanarky
@@ -19,10 +20,8 @@ import tanarky
 
 class User():
   def __init__(self):
-    self.default_version = 1
     self.services = ["facebook","twitter","yahoocom","yahoojp","mixi"]
-    self.version  = None
-    self.value    = None
+    self.version  = 1
 
   def get(self, key, default=None):
     if isinstance(self.value, dict) and self.value.has_key(key):
@@ -30,54 +29,58 @@ class User():
     else:
       return default
 
-  def parse(self,rawstr):
-    if isinstance(rawstr, str) and rawstr[0:2] == "1:":
-      self.version = 1
-      return self.parse_version1(rawstr)
+  def decode(self,rawstr):
+    if rawstr == None:
+      return None
+
+    if isinstance(rawstr, str):
+      rawstr = rawstr.decode('utf-8')
+
+    if isinstance(rawstr, unicode) and rawstr[0:2] == "1:":
+      logging.debug("version1")
+      return self.decode_version1(rawstr)
     else:
-      self.clear()
-      return False
+      logging.debug("version none")
+      return None
 
-  def clear(self):
-    self.version = None
-    self.value = None
-
-  def parse_version1(self,rawstr):
+  def decode_version1(self,rawstr):
     # parameters check
     params = rawstr.split(":",2)
     if len(params) != 3:
-      self.clear()
-      return False
+      return None
 
-    #version   = params[0]
+    version   = int(params[0])
     signature = params[1]
     body      = params[2]
     uids      = body.split("|")
-    logging.info(uids)
+    #logging.info(uids)
 
     # uids value check
-    if len(uids) != len(self.services) + 1: # +1 is main_sid
-      self.clear()
-      return False
+    if len(uids) != len(self.services) + 2: # +2 is (main_sid,name)
+      return None
 
     # signature check
     hash = hmac.new(tanarky.oauth.get("cookie","secret"),
                     digestmod=hashlib.sha1)
     hash.update(body)
     if hash.hexdigest() != signature:
-      self.clear()
-      return False
+      return None
 
     # value check
-    ret = {}
+    ret = { "version": version }
     main_sid = uids.pop(0)
-    logging.info(uids)
-    logging.info(main_sid)
+    #logging.debug(uids)
+    #logging.debug(main_sid)
     try:
       ret["main_sid"] = int(main_sid)
     except ValueError:
-      self.clear()
-      return False
+      return None
+
+    # name check
+    name = uids.pop(0)
+    logging.debug(type(name))
+    ret["name"] = urllib.unquote(name.encode('utf-8')).decode('utf-8')
+    logging.debug(type(ret["name"]))
 
     for i in range(0,len(self.services)):
       try:
@@ -85,19 +88,14 @@ class User():
         if uids[i] != "":
           ret[key] = uids[i]
       except IndexError:
-        self.clear()
-        return False
-
-    self.value = ret
-    return True
-
-  def build(self, params={}):
-    version = self.default_version
-    if params.has_key("version"):
-      if isinstance(params["version"],int):
-        version = params["version"]
-      else:
         return None
+
+    return ret
+
+  """
+  def encode2(self,params={}):
+    if self.version == None or self.version != 1:
+      return None
 
     vals = []
     if params.has_key("main_sid") and isinstance(params["main_sid"],int):
@@ -107,7 +105,7 @@ class User():
 
     for service in self.services:
       key = "%s_uid" % service
-      if params.has_key(key):
+      if params.has_key(key) and isinstance(params[key], str):
         vals.append(params[key])
       else:
         vals.append("")
@@ -115,6 +113,52 @@ class User():
     hash = hmac.new(tanarky.oauth.get("cookie","secret"),
                     digestmod=hashlib.sha1)
     hash.update(value)
-    return ":".join([str(version), hash.hexdigest(), value])
+    return ":".join([str(self.version), hash.hexdigest(), value])
+  """
+
+  def encode(self,**params):
+    if self.version == None or self.version != 1:
+      return None
+
+    vals = []
+    if isinstance(params["main_sid"],int):
+      vals.append(str(params["main_sid"]))
+    else:
+      return None
+
+    if not params.has_key("name"):
+      return None
+
+    name = params["name"]
+    if isinstance(name, str):
+      name = name.decode('utf-8')
+    if isinstance(name, unicode):
+      name = urllib.quote(name.encode('utf-8')).decode('utf-8')
+    logging.debug(name)
+    logging.debug(type(name))
+    vals.append(name)
+
+    for service in self.services:
+      key = "%s_uid" % service
+      if params.has_key(key) and isinstance(params[key], str):
+        vals.append(params[key])
+      else:
+        vals.append("")
+    value = "|".join(vals)
+    hash = hmac.new(tanarky.oauth.get("cookie","secret"),
+                    digestmod=hashlib.sha1)
+    hash.update(value)
+    return ":".join([str(self.version), hash.hexdigest(), value])
+
+  def set(self, value, headers, name="U", path="/", expires_in=30*36400):
+    cookie = Cookie.BaseCookie()
+    cookie[name]            = value
+    cookie[name]["path"]    = path
+    cookie[name]["expires"] = email.utils.formatdate(time.time()+expires_in,
+                                                     localtime=False,
+                                                     usegmt=True)
+    headers.append(("Set-Cookie", cookie.output()[12:]))
+    return True
+    
 
       

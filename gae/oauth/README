@@ -5,6 +5,16 @@ oauth sample
 how to test
 ========================================
 
+1. setup
+
+.. sourcecode: shell
+  
+  % sudo ln -s /home/satoshi/dev/google_appengine /usr/local/google_appengine
+  % workon myproject
+  % pip install nose NoseGAE WebTest
+
+2. do test
+
 .. sourcecode: shell
   
   (myproject)/home/satoshi/github/services/gae/oauth% nosetests --with-gae -v
@@ -18,6 +28,11 @@ how to test
   Ran 5 tests in 0.202s
   
   OK
+  
+  or
+  
+  (myproject)/home/satoshi/github/services/gae/oauth% nosetests --with-gae --gae-lib-root=/home/satoshi/dev/google_appengine test_model.py
+
 
 cookie
 ========================================

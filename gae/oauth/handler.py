@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
-os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
+## warningが出るのでコメントアウト
+#os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
 
 from google.appengine.dist import use_library
 use_library('django', '1.2')
@@ -12,14 +13,24 @@ import logging
 import tanarky.controller
 
 application = webapp.WSGIApplication(
-                                     [(r'/', tanarky.controller.Home),
-                                      (r'/home2', tanarky.controller.Home2),
-                                      ],
-                                     debug=True)
+  [(r'/', tanarky.controller.PageHome),
+   (r'/challenge',      tanarky.controller.PageChallenge),
+   (r'/reject',         tanarky.controller.PageReject),
+   (r'/result',         tanarky.controller.PageResult),
+   (r'/twitter',        tanarky.controller.PageTwitter),
+   (r'/facebook',       tanarky.controller.PageFacebook),
+   (r'/login/twitter',  tanarky.controller.LoginTwitter),
+   (r'/login/facebook', tanarky.controller.LoginFacebook),
+   (r'/logout', tanarky.controller.Logout),
+   (r'/.*',     tanarky.controller.Error),
+   ],
+  debug=True)
 
 def main():
+  #logging.getLogger().setLevel(logging.DEBUG)
   run_wsgi_app(application)
 
 if __name__ == "__main__":
   logging.getLogger().setLevel(logging.DEBUG)
+  #logging.getLogger().setLevel(logging.INFO)
   main()

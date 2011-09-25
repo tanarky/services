@@ -11,7 +11,7 @@ from google.appengine.ext import db, search
 
 from google.appengine.api import users
 
-APP_ID = u'tanargle'
+APP_ID = u'test-tanarky'
 AUTH_DOMAIN = 'gmail.com'
 LOGGED_IN_USER = 'test@example.com'
 
@@ -24,7 +24,8 @@ class GAETestBase(unittest.TestCase):
         stub = datastore_file_stub.DatastoreFileStub(APP_ID,
                                                      '/dev/null',
                                                      '/dev/null')
-        apiproxy_stub_map.apiproxy.RegisterStub('datastore_v3', stub)
+        apiproxy_stub_map.apiproxy.RegisterStub('datastore_v3',
+                                                stub)
 
         # ダミーのユーザ認証用サービスを登録する
         apiproxy_stub_map.apiproxy.RegisterStub(
