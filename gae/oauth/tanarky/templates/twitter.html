@@ -35,21 +35,36 @@
 
         <div class="span11">
           <h2>Twitterのフォロワーとじゃんけん！</h2>
+          <h3>フォローしている人たち({{paging.hits}}人)</h3>
           {% for f in friends %}
-          {% include 'friend.html' %}
+          {% include 'friend_twitter.html' %}
           {% endfor %}
 
           <div class="row">
             <div class="span11">
               <div class="pagination">
                 <ul>
-                  <li class="prev disabled"><a href="#">&larr; Previous</a></li>
-                  <li class="active"><a href="#">1</a></li>
-                  <li><a href="#">2</a></li>
-                  <li><a href="#">3</a></li>
-                  <li><a href="#">4</a></li>
-                  <li><a href="#">5</a></li>
-                  <li class="next"><a href="#">Next &rarr;</a></li>
+{% if paging.prev %}
+<li class="prev"><a href="/twitter?page={{paging.prev}}">&larr; Previous</a></li>
+{% else %}
+<li class="prev disabled"><a href="#">&larr; Previous</a></li>
+{% endif %}
+
+{% for p in paging.navi %}
+{% if p == paging.current %}
+<li class="active">
+{% else %}
+<li class="">
+{% endif %}
+<a href="#">{{ p }}</a></li>
+{% endfor %}
+
+{% if paging.next %}
+<li class="next"><a href="/twitter?page={{paging.next}}">Next &rarr;</a></li>
+{% else %}
+<li class="next disabled"><a href="#">Next &rarr;</a></li>
+{% endif %}
+
                 </ul>
               </div>
             </div>

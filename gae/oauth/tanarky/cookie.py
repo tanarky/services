@@ -21,7 +21,7 @@ import tanarky
 class User():
   def __init__(self):
     self.services = ["facebook","twitter","yahoocom","yahoojp","mixi"]
-    self.version  = 1
+    self.version  = float(tanarky.config.get("cookie", "version"))
 
   def get(self, key, default=None):
     if isinstance(self.value, dict) and self.value.has_key(key):
@@ -36,7 +36,7 @@ class User():
     if isinstance(rawstr, str):
       rawstr = rawstr.decode('utf-8')
 
-    if isinstance(rawstr, unicode) and rawstr[0:2] == "1:":
+    if isinstance(rawstr, unicode) and rawstr[0:2] == "1.":
       logging.debug("version1")
       return self.decode_version1(rawstr)
     else:
@@ -49,7 +49,10 @@ class User():
     if len(params) != 3:
       return None
 
-    version   = int(params[0])
+    version   = float(params[0])
+    if version < self.version:
+      return None
+
     signature = params[1]
     body      = params[2]
     uids      = body.split("|")
@@ -60,7 +63,7 @@ class User():
       return None
 
     # signature check
-    hash = hmac.new(tanarky.oauth.get("cookie","secret"),
+    hash = hmac.new(tanarky.config.get("cookie","secret"),
                     digestmod=hashlib.sha1)
     hash.update(body)
     if hash.hexdigest() != signature:
@@ -110,15 +113,15 @@ class User():
       else:
         vals.append("")
     value = "|".join(vals)
-    hash = hmac.new(tanarky.oauth.get("cookie","secret"),
+    hash = hmac.new(tanarky.config.get("cookie","secret"),
                     digestmod=hashlib.sha1)
     hash.update(value)
     return ":".join([str(self.version), hash.hexdigest(), value])
   """
 
   def encode(self,**params):
-    if self.version == None or self.version != 1:
-      return None
+    #if self.version == None or self.version != 1.0:
+    #  return None
 
     vals = []
     if isinstance(params["main_sid"],int):
@@ -140,12 +143,12 @@ class User():
 
     for service in self.services:
       key = "%s_uid" % service
-      if params.has_key(key) and isinstance(params[key], str):
+      if params.has_key(key) and isinstance(params[key], unicode):
         vals.append(params[key])
       else:
         vals.append("")
     value = "|".join(vals)
-    hash = hmac.new(tanarky.oauth.get("cookie","secret"),
+    hash = hmac.new(tanarky.config.get("cookie","secret"),
                     digestmod=hashlib.sha1)
     hash.update(value)
     return ":".join([str(self.version), hash.hexdigest(), value])

@@ -8,7 +8,7 @@ from google.appengine.api import mail_stub
 from google.appengine.api import urlfetch_stub
 from google.appengine.api import user_service_stub
 from google.appengine.ext import db, search
-
+from google.appengine.api import memcache
 from google.appengine.api import users
 
 APP_ID = u'test-tanarky'

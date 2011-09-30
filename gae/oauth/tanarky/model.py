@@ -12,16 +12,16 @@ class User(db.Expando):
 
     ## expando
     ## facebook
-    #facebook_id             = db.StringProperty(required=False)
+    #facebook_uid            = db.StringProperty(required=False)
     #facebook_token          = db.StringProperty(required=False)
     #has_child_id_facebook   = db.BooleanProperty(required=False)
     ## twitter
-    #twitter_id              = db.StringProperty(required=False)
+    #twitter_uid             = db.StringProperty(required=False)
     #twitter_token           = db.StringProperty(required=False)
     #twitter_secret          = db.StringProperty(required=False)
     #has_child_id_twitter    = db.BooleanProperty(required=False)
     ## yahoo.com
-    #yahoocom_id             = db.BlobProperty(required=False)
+    #yahoocom_uid            = db.BlobProperty(required=False)
     #yahoocom_token          = db.BlobProperty(required=False)
     #yahoocom_secret         = db.BlobProperty(required=False)
     #yahoocom_expire_ut      = db.IntegerProperty(required=False)
@@ -29,7 +29,7 @@ class User(db.Expando):
     #yahoocom_session_handle = db.DateProperty(required=False)
     #has_child_id_yahoocom   = db.BooleanProperty(required=False)
     ## yahoo.co.jp
-    #yahoojp_id              = db.BlobProperty(required=False)
+    #yahoojp_uid             = db.BlobProperty(required=False)
     #yahoojp_token           = db.BlobProperty(required=False)
     #yahoojp_secret          = db.BlobProperty(required=False)
     #yahoojp_expire_ut       = db.IntegerProperty(required=False)

@@ -24,3 +24,11 @@ div.follower {
     padding-bottom:5px;
     border-bottom: 1px solid #eee;
 }
+.name {
+    font-style: italic;
+    font-size: small;
+    color: #aaa;
+}
+.screen-name{
+
+}

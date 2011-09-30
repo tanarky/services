@@ -21,6 +21,7 @@ application = webapp.WSGIApplication(
    (r'/facebook',       tanarky.controller.PageFacebook),
    (r'/login/twitter',  tanarky.controller.LoginTwitter),
    (r'/login/facebook', tanarky.controller.LoginFacebook),
+   (r'/test/twf',       tanarky.controller.PageTest),
    (r'/logout', tanarky.controller.Logout),
    (r'/.*',     tanarky.controller.Error),
    ],
@@ -28,9 +29,10 @@ application = webapp.WSGIApplication(
 
 def main():
   #logging.getLogger().setLevel(logging.DEBUG)
+  #logging.info(__name__)
   run_wsgi_app(application)
 
 if __name__ == "__main__":
-  logging.getLogger().setLevel(logging.DEBUG)
+  #logging.getLogger().setLevel(logging.DEBUG)
   #logging.getLogger().setLevel(logging.INFO)
   main()
