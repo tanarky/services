@@ -36,3 +36,5 @@ class User(db.Expando):
     #yahoojp_auth_expire_ut  = db.IntegerProperty(required=False)
     #yahoojp_session_handle  = db.DateProperty(required=False)
     #has_child_id_yahoojp    = db.BooleanProperty(required=False)
+
+

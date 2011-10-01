@@ -7,40 +7,52 @@ from google.appengine.api import memcache
 from django.utils import simplejson
 
 import tanarky
-import oauth
+import tanarky.oauth
 import tanarky.cookie
 import tanarky.model
 
-class PageTest(webapp.RequestHandler):
+class PageBase(webapp.RequestHandler):
+  def get_oauth_client(self, name):
+    if name == "twitter":
+      tw_appid   = tanarky.config.get("twitter_test", "app_id")
+      tw_secret  = tanarky.config.get("twitter_test", "app_secret")
+      return tanarky.oauth.TwitterClient(tw_appid,
+                                         tw_secret,
+                                         self.request.path_url)
+    return None
+
+  def decode_u_cookie(self):
+    return tanarky.cookie.User().decode(self.request.cookies.get("U"))
+  def get_tmpl_path(self, name):
+    return os.path.join(os.path.dirname(__file__),
+                        'templates/%s.html' % name)
+
+class PageTest(PageBase):
   def get(self):
-    c = tanarky.cookie.User()
-    user = c.decode(self.request.cookies.get("U"))
+    user = self.decode_u_cookie()
     if user == None:
       self.redirect("/");
-      return
+
     self.response.out.write('ok')
     return
 
-
-class PageResult(webapp.RequestHandler):
+class PageResult(PageBase):
   def get(self):
-    c = tanarky.cookie.User()
-    user = c.decode(self.request.cookies.get("U"))
+    user = self.decode_u_cookie()
     if user == None:
       self.redirect("/");
-    else:
-      tmpl_vars = {}
-      tmpl_vars["name"] = user["name"]
-      path = os.path.join(os.path.dirname(__file__),
-                          'templates/result.html')
-      self.response.out.write(template.render(path,
-                                              tmpl_vars))
+
+    tmpl_vars = {}
+    tmpl_vars["name"] = user["name"]
+    path = os.path.join(os.path.dirname(__file__),
+                        'templates/result.html')
+    self.response.out.write(template.render(path,
+                                            tmpl_vars))
     return
 
-class PageChallenge(webapp.RequestHandler):
+class PageChallenge(PageBase):
   def get(self):
-    c = tanarky.cookie.User()
-    user = c.decode(self.request.cookies.get("U"))
+    user = self.decode_u_cookie()
     if user == None:
       self.redirect("/");
     else:
@@ -52,61 +64,62 @@ class PageChallenge(webapp.RequestHandler):
                                               tmpl_vars))
     return
 
-class PageReject(webapp.RequestHandler):
+class PageReject(PageBase):
   def get(self):
-    c = tanarky.cookie.User()
-    user = c.decode(self.request.cookies.get("U"))
+    user = self.decode_u_cookie()
     if user == None:
       self.redirect("/");
-    else:
-      self.redirect("/");
+
+    # do something
+    self.redirect("/");
     return
 
-class PageTwitter(webapp.RequestHandler):
+class PageTwitter(PageBase):
   def get(self):
-    c = tanarky.cookie.User()
-    user = c.decode(self.request.cookies.get("U"))
+    # 
+    # user cookie check
+    # 
+    user = self.decode_u_cookie()
     if user == None:
       self.redirect("/");
-      return
 
-    callback = self.request.path_url
-    client   = oauth.TwitterClient(tanarky.config.get("twitter_test", "app_id"),
-                                   tanarky.config.get("twitter_test", "app_secret"),
-                                   callback)
+    #
+    # 必要な変数定義
+    #
+    helper = tanarky.Helper()
+    client = self.get_oauth_client("twitter")
 
     friend_uids_key = "friend_uids_twitter_%s" % user["twitter_uid"]
     fids = memcache.get(friend_uids_key)
     user_model = None
-
     if fids == None:
-      user_model = tanarky.model.User.gql("WHERE twitter_uid = :1",
-                                          user["twitter_uid"]).get()
-      response = client.make_request("https://api.twitter.com/1/friends/ids.json",
-                                     token=user_model.twitter_token,
-                                     secret=user_model.twitter_secret,
-                                     additional_params={"user_id":str(user["twitter_uid"]),
-                                                        "cursor":str(-1)},
-                                     protected=True)
-      r = simplejson.loads(response.content)
-      fids = r["ids"]
-      #logging.info(fids)
+      user_model = helper.get_user_by_twitter_uid(user["twitter_uid"])
+      if user_model == None:
+        self.redirect("/logout");
+        return
+
+      res = client.make_request("https://api.twitter.com/1/friends/ids.json",
+                                token=user_model.twitter_token,
+                                secret=user_model.twitter_secret,
+                                additional_params={"user_id":user["twitter_uid"]},
+                                protected=True)
+      fids = simplejson.loads(res.content)
       memcache.set(friend_uids_key,
                    fids,
                    int(tanarky.config.get("cache", "friend_uids")))
     else:
-      logging.info("friend_ids cache hit.")
+      logging.debug("friend_ids cache hit.")
 
     try:
       page = int(self.request.get("page", "1"))
       if page < 1:
         page = 1
     except ValueError:
-      logging.info("value error")
+      logging.debug("value error")
       page = 1
 
     need_ids = fids[(10*(page-1)):(10*page)]
-    logging.info(need_ids)
+    logging.debug(need_ids)
     profs    = []
     no_ids   = []
     for i in need_ids:
@@ -119,13 +132,12 @@ class PageTwitter(webapp.RequestHandler):
 
     f = []
     if len(no_ids) == 0:
-      logging.info("all ids cache hit.")
+      logging.debug("all ids cache hit.")
       f = profs
     else:
-      logging.info("no cache about these ids. %s" % no_ids)
+      logging.debug("no cache about these ids. %s" % no_ids)
       if user_model == None:
-        user_model = tanarky.model.User.gql("WHERE twitter_uid = :1",
-                                            user["twitter_uid"]).get()
+        user_model = helper.get_user_by_twitter_uid(user["twitter_uid"])
 
       response = client.make_request("https://api.twitter.com/1/users/lookup.json",
                                      token=user_model.twitter_token,
@@ -136,7 +148,7 @@ class PageTwitter(webapp.RequestHandler):
       r = simplejson.loads(response.content)
       cache_dic = {}
       for ff in r:
-        logging.info(ff)
+        logging.debug(ff)
         cache_val = {"img":ff["profile_image_url"],
                      "id":str(ff["id"]),
                      "name":ff["name"],
@@ -165,7 +177,7 @@ class PageTwitter(webapp.RequestHandler):
       if page + x <= paging["max"]:
         paging["navi"].append(page+x)
 
-    logging.info(paging)
+    logging.debug(paging)
 
     tmpl_vars = {}
     tmpl_vars["paging"]  = paging
@@ -177,67 +189,52 @@ class PageTwitter(webapp.RequestHandler):
                                             tmpl_vars))
     return
 
-class PageFacebook(webapp.RequestHandler):
+class PageFacebook(PageBase):
   def get(self):
-    c = tanarky.cookie.User()
-    user = c.decode(self.request.cookies.get("U"))
+    user = self.decode_u_cookie()
     if user == None:
       self.redirect("/");
-    else:
-      tmpl_vars = {}
-      tmpl_vars["name"] = user["name"]
-      tmpl_vars["friends"] = range(0,10)
-      path = os.path.join(os.path.dirname(__file__),
-                          'templates/facebook.html')
-      self.response.out.write(template.render(path,
-                                              tmpl_vars))
+
+    tmpl_vars = {}
+    tmpl_vars["name"] = user["name"]
+    tmpl_vars["friends"] = range(0,10)
+    path = os.path.join(os.path.dirname(__file__),
+                        'templates/facebook.html')
+    self.response.out.write(template.render(path,
+                                            tmpl_vars))
     return
 
-class PageHome(webapp.RequestHandler):
+class PageHome(PageBase):
   def get(self):
-    c = tanarky.cookie.User()
-    user = c.decode(self.request.cookies.get("U"))
+    user = self.decode_u_cookie()
+    tmpl_vars = {}
+
     if user == None:
-      name = "ゲスト"
-      tmpl_vars = {}
-      path = os.path.join(os.path.dirname(__file__),
-                          'templates/guest.html')
-      self.response.out.write(template.render(path,
-                                              tmpl_vars))
+      tmpl_path = self.get_tmpl_path('guest')
+      tmpl_vars["name"] = "ゲスト"
     else:
-      tmpl_vars = {}
-      tmpl_vars["name"] = user["name"]
+      tmpl_path = self.get_tmpl_path('home')
+      tmpl_vars["name"]    = user["name"]
       tmpl_vars["friends"] = range(0,10)
-      path = os.path.join(os.path.dirname(__file__),
-                          'templates/home.html')
-      self.response.out.write(template.render(path,
-                                              tmpl_vars))
+
+    self.response.out.write(template.render(tmpl_path,tmpl_vars))
     return
 
-class LoginTwitter(webapp.RequestHandler):
+class LoginTwitter(PageBase):
   def get(self):
     c = tanarky.cookie.User()
-    user_cookie = c.decode(self.request.cookies.get("U"))
-    # Cookieがあり、かつ、twitter_uidも登録済みならば、
-    # することはないのでリダイレクト
-    # tokenのpermissionを追加した場合などは再発行したほうがいいかも
-    if user_cookie != None and user_cookie.has_key("twitter_uid"):
-      logging.info("already logged in.")
-      self.redirect("/twitter")
 
-    # twitter oauth login処理(詳細はoauth.pyを参照)
-    callback = self.request.path_url
-    client   = oauth.TwitterClient(tanarky.config.get("twitter_test", "app_id"),
-                                   tanarky.config.get("twitter_test", "app_secret"),
-                                   callback)
+    client        = self.get_oauth_client("twitter")
     auth_token    = self.request.get("oauth_token")
     auth_verifier = self.request.get("oauth_verifier")
+
     if not auth_token:
       return self.redirect(client.get_authorization_url())
+
     prof = client.get_user_info(auth_token,auth_verifier)
 
     # login成功
-    logging.info(prof)
+    logging.debug(prof)
 
     user_model = tanarky.model.User(
       sid  = 2,
@@ -255,7 +252,7 @@ class LoginTwitter(webapp.RequestHandler):
       "twitter_uid": unicode(prof["id"])
       }
     cookie_str = c.encode(**user)
-    logging.info(cookie_str)
+    logging.debug(cookie_str)
     c.set(value=cookie_str,
           headers=self.response.headers._headers)
     self.redirect("/twitter")
@@ -276,17 +273,16 @@ class LoginFacebook(webapp.RequestHandler):
           headers=self.response.headers._headers)
     self.redirect("/facebook");
 
-class Logout(webapp.RequestHandler):
+class Logout(PageBase):
   def get(self):
     c = tanarky.cookie.User()
-    cookie_str = ""
-    c.set(value = cookie_str,
+    c.set(value = "",
           name  = "U",
           expires_in = -1 * 86400,
           headers=self.response.headers._headers)
     self.redirect("/");
 
-class Error(webapp.RequestHandler):
+class Error(PageBase):
   def get(self):
     self.error(404)
     self.response.out.write('error')
