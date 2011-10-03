@@ -1,3 +1,4 @@
+# coding: utf-8
 from google.appengine.ext import db
 
 class User(db.Expando):
@@ -36,5 +37,53 @@ class User(db.Expando):
     #yahoojp_auth_expire_ut  = db.IntegerProperty(required=False)
     #yahoojp_session_handle  = db.DateProperty(required=False)
     #has_child_id_yahoojp    = db.BooleanProperty(required=False)
+
+## 1:1じゃんけんの結果
+#class Result(db.Expando):
+#    from_sid   = db.IntegerProperty(required=True)
+#    from_uid   = db.StringProperty(required=True)
+#    from_hands = db.ListProperty(long, required=True)
+#    to_sid     = db.IntegerProperty(required=True)
+#    to_uid     = db.StringProperty(required=True)
+#    to_hands   = db.ListProperty(long, required=False)
+#    status     = db.IntegerProperty(required=True)
+#    updated    = db.DateTimeProperty(auto_now=True)
+#
+## 1:多じゃんけん大会情報
+#class Game(db.Expando):
+#    # createしたUserのMain ID
+#    sid     = db.IntegerProperty(required=True)
+#    uid     = db.StringProperty(required=True)
+#    # じゃんけん大会名
+#    title   = db.StringProperty(required=False)
+#    # 
+#    hands   = db.ListProperty(long, required=False)
+#    created = db.DateTimeProperty(auto_now_add=True)
+#
+## -----------------------
+#
+## 1:1じゃんけんの結果
+#class UserResult(db.Expando):
+#    gid     = db.StringProperty(required=True)
+#    sid     = db.IntegerProperty(required=True)
+#    uid     = db.StringProperty(required=True)
+#    hands   = db.ListProperty(long, required=True)
+#    status  = db.IntegerProperty(required=True)
+#    updated = db.DateTimeProperty(auto_now=True)
+#
+## 1:多じゃんけん大会情報
+#class Game(db.Expando):
+#    # createしたUserのMain ID
+#    sid     = db.IntegerProperty(required=True)
+#    uid     = db.StringProperty(required=True)
+#    # じゃんけん大会名
+#    title   = db.StringProperty(required=False)
+#    # 
+#    hands   = db.ListProperty(long, required=False)
+#    created = db.DateTimeProperty(auto_now_add=True)
+
+
+
+
 
 

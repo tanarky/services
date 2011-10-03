@@ -14,11 +14,17 @@ import tanarky.model
 class PageBase(webapp.RequestHandler):
   def get_oauth_client(self, name):
     if name == "twitter":
-      tw_appid   = tanarky.config.get("twitter_test", "app_id")
-      tw_secret  = tanarky.config.get("twitter_test", "app_secret")
-      return tanarky.oauth.TwitterClient(tw_appid,
-                                         tw_secret,
+      app_id     = tanarky.config.get("twitter_test", "app_id")
+      app_secret = tanarky.config.get("twitter_test", "app_secret")
+      return tanarky.oauth.TwitterClient(app_id,
+                                         app_secret,
                                          self.request.path_url)
+    elif name == "facebook":
+      app_id     = tanarky.config.get("facebook_test", "app_id")
+      app_secret = tanarky.config.get("facebook_test", "app_secret")
+      return tanarky.oauth.FacebookClient(app_id,
+                                          app_secret,
+                                          self.request.path_url)
     return None
 
   def decode_u_cookie(self):
@@ -26,6 +32,26 @@ class PageBase(webapp.RequestHandler):
   def get_tmpl_path(self, name):
     return os.path.join(os.path.dirname(__file__),
                         'templates/%s.html' % name)
+  def get_tmpl_vars_paging(self, link, hits, current=1):
+    paging = {"current":current,
+              "link":link,
+              "navi":[current],
+              "hits":hits,
+              "max":int(math.ceil(float(hits)/10))}
+
+    if current > 1:
+      paging["prev"] = current - 1
+    if current < paging["max"]:
+      paging["next"] = current + 1
+
+    for x in range(1,5):
+      if current - x > 0:
+        paging["navi"].insert(0,current-x)
+      if current + x <= paging["max"]:
+        paging["navi"].append(current+x)
+    logging.debug(paging)
+    return paging
+
 
 class PageTest(PageBase):
   def get(self):
@@ -160,29 +186,12 @@ class PageTwitter(PageBase):
       memcache.set_multi(cache_dic,
                          int(tanarky.config.get("cache", "user_prof")))
 
-    paging = {"current":page,
-              "navi":[page],
-              "hits":len(fids)}
-    paging["max"] = int(math.ceil(float(len(fids))/10))
-
-    if page > 1:
-      paging["prev"] = page - 1
-
-    if page < paging["max"]:
-      paging["next"] = page + 1
-
-    for x in range(1,5):
-      if page - x > 0:
-        paging["navi"].insert(0,page-x)
-      if page + x <= paging["max"]:
-        paging["navi"].append(page+x)
-
-    logging.debug(paging)
-
     tmpl_vars = {}
-    tmpl_vars["paging"]  = paging
     tmpl_vars["name"]    = user["name"]
     tmpl_vars["friends"] = f
+    tmpl_vars["paging"]  = self.get_tmpl_vars_paging(link="/twitter",
+                                                     hits=len(fids),
+                                                     current=page)
     path = os.path.join(os.path.dirname(__file__),
                         'templates/twitter.html')
     self.response.out.write(template.render(path,
@@ -220,6 +229,19 @@ class PageHome(PageBase):
     self.response.out.write(template.render(tmpl_path,tmpl_vars))
     return
 
+#
+# 1. querystringにoauth_token,oauth_verifierがない場合(1回目アクセス)
+#
+#    1.1 self.request_urlにアクセスして、oauth_token+oauth_token_secretを取得
+#    1.2 oauth_tokenをkey,oauth_token_secretをvalueにしてmemcacheに保存
+#    1.3 authorization_url(oauth_tokenのみが必要なURL)にリダイレクト
+#
+# 2. querystringにoauth_token,oauth_verifierがある場合(2回目アクセス)
+#
+#    2.1 oauth_tokenをもとにmemcacheからoauth_token_secretを取得
+#    2.2 oauth_token,oauth_token_secret,oauth_verifierの3つをリクエストに付与して、self.access_urlに送信
+#    2.3 responseに含まれる(access_)token,(access_)secretをDBに保存する
+#
 class LoginTwitter(PageBase):
   def get(self):
     c = tanarky.cookie.User()
@@ -236,9 +258,22 @@ class LoginTwitter(PageBase):
     # login成功
     logging.debug(prof)
 
+    # U cookieが存在する場合は、main sid/uidを取得
+    user_model = None
+    if 0:
+      pass
+    else:
+      pass
+
+    # すでにUserデータが存在しないか確認
+
+    # Userデータ登録
+    sid = 2
+    uid = unicode(prof["id"])
     user_model = tanarky.model.User(
-      sid  = 2,
-      uid  = unicode(prof["id"]),
+      key_name = "%d-%s" % (sid, uid),
+      sid  = sid,
+      uid  = uid,
       name = unicode(prof["username"]),
       twitter_uid    = unicode(prof["id"]),
       twitter_token  = unicode(prof["token"]),
@@ -257,21 +292,49 @@ class LoginTwitter(PageBase):
           headers=self.response.headers._headers)
     self.redirect("/twitter")
 
-class LoginFacebook(webapp.RequestHandler):
+#
+# 1. querystringにcodeがない場合(1回目アクセス)
+#    1.1 /oauth/authorizeに必要パラメータをつけてリダイレクト
+# 2. querystringにcodeがある場合(2回目アクセス)
+#    2.1 必要パラメータに、codeとAPP_SECRETをつけて、/oauth/access_tokenにリクエスト
+#    2.2 レスポンスのaccess_tokenを保存
+#
+class LoginFacebook(PageBase):
   def get(self):
+    client = self.get_oauth_client("facebook")
+    code   = self.request.get("code")
+    scope  = tanarky.config.get("facebook_test", "scope")
+
+    if not code:
+      return self.redirect(client.get_authorization_url(scope))
+
+    access_token = client.get_access_token(code, scope)
+    prof = client.lookup_user_info(access_token)
+
+    # Userデータ登録
+    sid = 1
+    uid = unicode(prof["id"])
+    user_model = tanarky.model.User(
+      key_name = "%d-%s" % (sid, uid),
+      sid  = sid,
+      uid  = uid,
+      name = unicode(prof["name"]),
+      facebook_uid   = uid,
+      facebook_token = access_token)
+    user_model.put()
+
     user = {
-      "main_sid": 1,
-      #"name":"たなか",
-      "name":u"たなか",
-      #"name":"tanarky",
-      "facebook_uid": "12345",
-      "yahoocom_uid": "foobar",
+      "main_sid": sid,
+      "name" : unicode(prof["name"]),
+      "facebook_uid": unicode(prof["id"])
       }
-    c = tanarky.cookie.User()
-    cookie_str = c.encode(**user)
-    c.set(value=cookie_str,
-          headers=self.response.headers._headers)
-    self.redirect("/facebook");
+
+    user_cookie = tanarky.cookie.User()
+    cookie_str = user_cookie.encode(**user)
+    #logging.debug(cookie_str)
+    user_cookie.set(value=cookie_str,
+                    headers=self.response.headers._headers)
+    self.redirect("/facebook")
 
 class Logout(PageBase):
   def get(self):

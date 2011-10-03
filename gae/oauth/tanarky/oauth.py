@@ -1,48 +1,5 @@
 #!/usr/bin/env python
-
-"""
-A simple OAuth implementation for authenticating users with third party
-websites.
-
-A typical use case inside an AppEngine controller would be:
-
-1) Create the OAuth client. In this case we'll use the Twitter client,
-  but you could write other clients to connect to different services.
-
-  import oauth
-
-  consumer_key = "LKlkj83kaio2fjiudjd9...etc"
-  consumer_secret = "58kdujslkfojkjsjsdk...etc"
-  callback_url = "http://www.myurl.com/callback/twitter"
-
-  client = oauth.TwitterClient(consumer_key, consumer_secret, callback_url)
-
-2) Send the user to Twitter in order to login:
-
-  self.redirect(client.get_authorization_url())
-
-3) Once the user has arrived back at your callback URL, you'll want to
-  get the authenticated user information.
-
-  auth_token = self.request.get("oauth_token")
-  auth_verifier = self.request.get("oauth_verifier")
-  user_info = client.get_user_info(auth_token, auth_verifier=auth_verifier)
-
-  The "user_info" variable should then contain a dictionary of various
-  user information (id, picture url, etc). What you do with that data is up
-  to you.
-
-  That's it!
-
-4) If you need to, you can also call other other API URLs using
-  client.make_request() as long as you supply a valid API URL and an access
-  token and secret. Note, you may need to set method=urlfetch.POST.
-
-@author: Mike Knapp
-@copyright: Unrestricted. Feel free to use modify however you see fit. Please
-note however this software is unsupported. Please don't email me about it. :)
-"""
-
+# coding: utf-8
 from google.appengine.api import memcache
 from google.appengine.api import urlfetch
 from google.appengine.ext import db
@@ -56,27 +13,24 @@ from time import time
 from urllib import urlencode
 from urllib import quote as urlquote
 from urllib import unquote as urlunquote
+import urllib2
 
 import logging
 
 
-TWITTER = "twitter"
-YAHOO = "yahoo"
-MYSPACE = "myspace"
-DROPBOX = "dropbox"
+TWITTER  = "twitter"
+YAHOO    = "yahoo"
+MYSPACE  = "myspace"
+DROPBOX  = "dropbox"
 LINKEDIN = "linkedin"
-YAMMER = "yammer"
-
+YAMMER   = "yammer"
+FACEBOOK = "facebook"
 
 class OAuthException(Exception):
   pass
 
 
 def get_oauth_client(service, key, secret, callback_url):
-  """Get OAuth Client.
-
-  A factory that will return the appropriate OAuth client.
-  """
 
   if service == TWITTER:
     return TwitterClient(key, secret, callback_url)
@@ -90,20 +44,12 @@ def get_oauth_client(service, key, secret, callback_url):
     return LinkedInClient(key, secret, callback_url)
   elif service == YAMMER:
     return YammerClient(key, secret, callback_url)
+  elif service == FACEBOOK:
+    return FacebookClient(key, secret, callback_url)
   else:
     raise Exception, "Unknown OAuth service %s" % service
 
-
 class AuthToken(db.Model):
-  """Auth Token.
-
-  A temporary auth token that we will use to authenticate a user with a
-  third party website. (We need to store the data while the user visits
-  the third party website to authenticate themselves.)
-
-  TODO: Implement a cron to clean out old tokens periodically.
-  """
-
   service = db.StringProperty(required=True)
   token = db.StringProperty(required=True)
   secret = db.StringProperty(required=True)
@@ -114,7 +60,6 @@ class OAuthClient():
 
   def __init__(self, service_name, consumer_key, consumer_secret, request_url,
                access_url, callback_url=None):
-    """ Constructor."""
 
     self.service_name = service_name
     self.consumer_key = consumer_key
@@ -123,14 +68,14 @@ class OAuthClient():
     self.access_url = access_url
     self.callback_url = callback_url
 
-  def prepare_request(self, url, token="", secret="", additional_params=None,
-                      method=urlfetch.GET, t=None, nonce=None):
-    """Prepare Request.
-
-    Prepares an authenticated request to any OAuth protected resource.
-
-    Returns the payload of the request.
-    """
+  def prepare_request(self,
+                      url,
+                      token="",
+                      secret="",
+                      additional_params=None,
+                      method=urlfetch.GET,
+                      t=None,
+                      nonce=None):
 
     def encode(text):
       return urlquote(str(text), "~")
@@ -174,14 +119,6 @@ class OAuthClient():
 
   def make_async_request(self, url, token="", secret="", additional_params=None,
                          protected=False, method=urlfetch.GET, headers={}):
-    """Make Request.
-
-    Make an authenticated request to any OAuth protected resource.
-
-    If protected is equal to True, the Authorization: OAuth header will be set.
-
-    A urlfetch response object is returned.
-    """
 
     payload = self.prepare_request(url, token, secret, additional_params,
                                    method)
@@ -198,8 +135,14 @@ class OAuthClient():
                              payload=payload)
     return rpc
 
-  def make_request(self, url, token="", secret="", additional_params=None,
-                   protected=False, method=urlfetch.GET, headers={}):
+  def make_request(self,
+                   url,
+                   token="",
+                   secret="",
+                   additional_params=None,
+                   protected=False,
+                   method=urlfetch.GET,
+                   headers={}):
 
     return self.make_async_request(url, token, secret, additional_params,
                                    protected, method, headers).get_result()
@@ -263,13 +206,7 @@ class OAuthClient():
     return user_info
 
   def _get_auth_token(self):
-    """Get Authorization Token.
-
-    Actually gets the authorization token and secret from the service. The
-    token and secret are stored in our database, and the auth token is
-    returned.
-    """
-
+ 
     response = self.make_request(self.request_url)
     result = self._extract_credentials(response)
 
@@ -345,39 +282,27 @@ class OAuthClient():
 
 
 class TwitterClient(OAuthClient):
-  """Twitter Client.
 
-  A client for talking to the Twitter API using OAuth as the
-  authentication model.
-  """
-
-  def __init__(self, consumer_key, consumer_secret, callback_url):
-    """Constructor."""
+  def __init__(self, key, secret, cb):
 
     OAuthClient.__init__(self,
-        TWITTER,
-        consumer_key,
-        consumer_secret,
-        "http://api.twitter.com/oauth/request_token",
-        "http://api.twitter.com/oauth/access_token",
-        callback_url)
+                         service_name=TWITTER,
+                         consumer_key=key,
+                         consumer_secret=secret,
+                         request_url="http://api.twitter.com/oauth/request_token",
+                         access_url="http://api.twitter.com/oauth/access_token",
+                         callback_url=cb)
 
   def get_authorization_url(self):
-    """Get Authorization URL."""
-
+    # 一番最初にアクセスするURL
     token = self._get_auth_token()
     return "http://api.twitter.com/oauth/authorize?oauth_token=%s" % token
 
   def get_authenticate_url(self):
-    """Get Authentication URL."""
     token = self._get_auth_token()
     return "http://api.twitter.com/oauth/authenticate?oauth_token=%s" % token
 
   def _lookup_user_info(self, access_token, access_secret):
-    """Lookup User Info.
-
-    Lookup the user on Twitter.
-    """
 
     response = self.make_request(
         "http://api.twitter.com/account/verify_credentials.json",
@@ -393,6 +318,52 @@ class TwitterClient(OAuthClient):
 
     return user_info
 
+
+class FacebookClient(OAuthClient):
+
+  def __init__(self, consumer_key, consumer_secret, callback_url):
+
+    OAuthClient.__init__(self,
+                         FACEBOOK,
+                         consumer_key,
+                         consumer_secret,
+                         "http://api.twitter.com/oauth/request_token",
+                         "http://api.twitter.com/oauth/access_token",
+                         callback_url)
+
+  # codeを取得するページ
+  def get_authorization_url(self, scope=""):
+    args = dict(client_id    = self.consumer_key,
+                redirect_uri = self.callback_url,
+                scope        = scope)
+    return "https://graph.facebook.com/oauth/authorize?" + urlencode(args)
+
+  def get_authenticate_url(self, code, scope=""):
+    args = dict(client_id    = self.consumer_key,
+                client_secret= self.consumer_secret,
+                redirect_uri = self.callback_url,
+                code         = code,
+                scope        = scope)
+    return "https://graph.facebook.com/oauth/access_token?" + urlencode(args)
+
+  def get_access_token(self, oauth_code, scope=""):
+    url = self.get_authenticate_url(oauth_code, scope)
+    response = parse_qs(urllib2.urlopen(url).read())
+    access_token = response["access_token"][-1]
+    #logging.info(access_token)
+    return access_token
+
+  def lookup_user_info(self, access_token):
+    prof = json.load(urllib2.urlopen(
+        "https://graph.facebook.com/me?" +
+        urlencode(dict(access_token=access_token))))
+
+    user_info = {}
+    user_info["id"] = prof["id"]
+    user_info["username"] = prof["name"]
+    user_info["name"] = prof["name"]
+    user_info["picture"] = ""
+    return user_info
 
 class MySpaceClient(OAuthClient):
   """MySpace Client.

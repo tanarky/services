@@ -1,0 +1,30 @@
+<div class="pagination">
+<ul>
+
+{% if paging.prev %}
+<li class="prev">
+  <a href="{{paging.link}}?page={{paging.prev}}">&larr; Previous</a>
+</li>
+{% else %}
+<li class="prev disabled"><a href="#">&larr; Previous</a></li>
+{% endif %}
+
+{% for p in paging.navi %}
+{% if p == paging.current %}
+<li class="active">
+{% else %}
+<li class="">
+{% endif %}
+<a href="{{ paging.link}}?page={{p}}">{{ p }}</a></li>
+{% endfor %}
+
+{% if paging.next %}
+<li class="next">
+  <a href="{{ paging.link}}?page={{paging.next}}">Next &rarr;</a>
+</li>
+{% else %}
+<li class="next disabled"><a href="#">Next &rarr;</a></li>
+{% endif %}
+
+</ul>
+</div>
