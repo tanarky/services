@@ -322,7 +322,6 @@ class TwitterClient(OAuthClient):
 class FacebookClient(OAuthClient):
 
   def __init__(self, consumer_key, consumer_secret, callback_url):
-
     OAuthClient.__init__(self,
                          FACEBOOK,
                          consumer_key,

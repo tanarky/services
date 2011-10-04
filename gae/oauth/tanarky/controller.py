@@ -59,7 +59,12 @@ class PageTest(PageBase):
     if user == None:
       self.redirect("/");
 
-    self.response.out.write('ok')
+    helper     = tanarky.Helper()
+    user_model = helper.get_user_by_facebook_uid(user["facebook_uid"])
+    friends    = helper.get_facebook_friends_online(user_model.facebook_token)
+    logging.info(friends)
+    self.response.headers['Content-type'] = 'application/json'
+    self.response.out.write(simplejson.dumps(friends, ensure_ascii=False))
     return
 
 class PageResult(PageBase):

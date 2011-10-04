@@ -21,9 +21,9 @@ application = webapp.WSGIApplication(
    (r'/facebook',       tanarky.controller.PageFacebook),
    (r'/login/twitter',  tanarky.controller.LoginTwitter),
    (r'/login/facebook', tanarky.controller.LoginFacebook),
-   (r'/test/twf',       tanarky.controller.PageTest),
-   (r'/logout', tanarky.controller.Logout),
-   (r'/.*',     tanarky.controller.Error),
+   (r'/test',           tanarky.controller.PageTest),
+   (r'/logout',         tanarky.controller.Logout),
+   (r'/.*',             tanarky.controller.Error),
    ],
   debug=True)
 
