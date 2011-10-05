@@ -353,6 +353,7 @@ class FacebookClient(OAuthClient):
     return access_token
 
   def lookup_user_info(self, access_token):
+    # FIXME: error handling
     prof = json.load(urllib2.urlopen(
         "https://graph.facebook.com/me?" +
         urlencode(dict(access_token=access_token))))

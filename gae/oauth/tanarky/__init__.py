@@ -17,9 +17,9 @@ class Helper():
         self.fql = "https://api.facebook.com/method/fql.query?"
 
     def get_user_by_twitter_uid(self, uid):
-        return tanarky.model.User.gql("WHERE twitter_uid = :1",uid).get()
+        return tanarky.model.User.gql("WHERE uid2 = :1",uid).get()
     def get_user_by_facebook_uid(self, uid):
-        return tanarky.model.User.gql("WHERE facebook_uid = :1",uid).get()
+        return tanarky.model.User.gql("WHERE uid1 = :1",uid).get()
     def get_facebook_friends_online(self, access_token):
         query = \
             "SELECT uid, name, pic_square,online_presence FROM user "   + \

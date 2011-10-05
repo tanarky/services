@@ -57,7 +57,7 @@ class PageTest(PageBase):
   def get(self):
     user = self.decode_u_cookie()
     if user == None:
-      self.redirect("/");
+      return self.redirect("/");
 
     helper     = tanarky.Helper()
     user_model = helper.get_user_by_facebook_uid(user["facebook_uid"])
@@ -71,7 +71,7 @@ class PageResult(PageBase):
   def get(self):
     user = self.decode_u_cookie()
     if user == None:
-      self.redirect("/");
+      return self.redirect("/");
 
     tmpl_vars = {}
     tmpl_vars["name"] = user["name"]
@@ -85,25 +85,24 @@ class PageChallenge(PageBase):
   def get(self):
     user = self.decode_u_cookie()
     if user == None:
-      self.redirect("/");
-    else:
-      tmpl_vars = {}
-      tmpl_vars["name"] = user["name"]
-      path = os.path.join(os.path.dirname(__file__),
-                          'templates/challenge.html')
-      self.response.out.write(template.render(path,
-                                              tmpl_vars))
+      return self.redirect("/");
+
+    tmpl_vars = {}
+    tmpl_vars["name"] = user["name"]
+    path = os.path.join(os.path.dirname(__file__),
+                        'templates/challenge.html')
+    self.response.out.write(template.render(path,
+                                            tmpl_vars))
     return
 
 class PageReject(PageBase):
   def get(self):
     user = self.decode_u_cookie()
     if user == None:
-      self.redirect("/");
+      return self.redirect("/");
 
     # do something
-    self.redirect("/");
-    return
+    return self.redirect("/");
 
 class PageTwitter(PageBase):
   def get(self):
@@ -111,8 +110,9 @@ class PageTwitter(PageBase):
     # user cookie check
     # 
     user = self.decode_u_cookie()
-    if user == None:
-      self.redirect("/");
+    if user == None or user.has_key("uid2") == False:
+      return self.redirect("/login/twitter")
+    logging.info(user)
 
     #
     # 必要な変数定義
@@ -120,19 +120,18 @@ class PageTwitter(PageBase):
     helper = tanarky.Helper()
     client = self.get_oauth_client("twitter")
 
-    friend_uids_key = "friend_uids_twitter_%s" % user["twitter_uid"]
+    friend_uids_key = "friend_uids_twitter_%s" % user["uid2"]
     fids = memcache.get(friend_uids_key)
     user_model = None
     if fids == None:
-      user_model = helper.get_user_by_twitter_uid(user["twitter_uid"])
+      user_model = helper.get_user_by_twitter_uid(user["uid2"])
       if user_model == None:
-        self.redirect("/logout");
-        return
+        return self.redirect("/logout");
 
       res = client.make_request("https://api.twitter.com/1/friends/ids.json",
-                                token=user_model.twitter_token,
-                                secret=user_model.twitter_secret,
-                                additional_params={"user_id":user["twitter_uid"]},
+                                token=user_model.token2,
+                                secret=user_model.secret2,
+                                additional_params={"user_id":user["uid2"]},
                                 protected=True)
       fids = simplejson.loads(res.content)
       memcache.set(friend_uids_key,
@@ -168,11 +167,11 @@ class PageTwitter(PageBase):
     else:
       logging.debug("no cache about these ids. %s" % no_ids)
       if user_model == None:
-        user_model = helper.get_user_by_twitter_uid(user["twitter_uid"])
+        user_model = helper.get_user_by_twitter_uid(user["uid2"])
 
       response = client.make_request("https://api.twitter.com/1/users/lookup.json",
-                                     token=user_model.twitter_token,
-                                     secret=user_model.twitter_secret,
+                                     token=user_model.token2,
+                                     secret=user_model.secret2,
                                      additional_params={"user_id":",".join(no_ids),
                                                         "include_entities":"0"},
                                      protected=True)
@@ -206,8 +205,27 @@ class PageTwitter(PageBase):
 class PageFacebook(PageBase):
   def get(self):
     user = self.decode_u_cookie()
-    if user == None:
-      self.redirect("/");
+    if user == None or user.has_key("uid1") == False:
+      logging.debug("no uid1. redirect to facebook login page")
+      return self.redirect("/login/facebook")
+
+    cache_key = "facebook_online_%s" % user["uid1"]
+    friends   = memcache.get(cache_key)
+
+    if friends == None:
+      helper     = tanarky.Helper()
+      user_model = helper.get_user_by_facebook_uid(user["uid1"])
+      if user_model == None:
+        return self.redirect("/login/facebook")
+      friends    = helper.get_facebook_friends_online(user_model.token1)
+      cache_dic = {}
+      cache_dic[cache_key] = friends
+      memcache.set_multi(cache_dic,
+                         int(tanarky.config.get("cache", "facebook_online")))
+    else:
+      logging.info("cache hit")
+
+    logging.info(friends)
 
     tmpl_vars = {}
     tmpl_vars["name"] = user["name"]
@@ -216,7 +234,6 @@ class PageFacebook(PageBase):
                         'templates/facebook.html')
     self.response.out.write(template.render(path,
                                             tmpl_vars))
-    return
 
 class PageHome(PageBase):
   def get(self):
@@ -258,44 +275,54 @@ class LoginTwitter(PageBase):
     if not auth_token:
       return self.redirect(client.get_authorization_url())
 
-    prof = client.get_user_info(auth_token,auth_verifier)
-
     # login成功
+    prof = client.get_user_info(auth_token,auth_verifier)
     logging.debug(prof)
 
-    # U cookieが存在する場合は、main sid/uidを取得
-    user_model = None
-    if 0:
-      pass
+    user = self.decode_u_cookie()
+    sid  = None
+    uid  = None
+    uid2 = unicode(prof["id"])
+    #
+    # Cookieを持っていない場合
+    #
+    if user == None:
+      logging.debug("no cookie")
+      sid  = 2
+      uid  = uid2
+      user = {
+        "main_sid": sid,
+        "name": unicode(prof["name"]),
+        "uid2": uid2,
+      }
+      user_model = tanarky.model.User(
+        key_name = "%d-%s" % (sid,uid),
+        main_sid = sid,
+        name     = user["name"],
+        uid2     = uid2,
+        token2   = unicode(prof["token"]),
+        srcret2  = unicode(prof["secret"]),
+        )
+    #
+    # すでにCookieを持っている場合
+    #
     else:
-      pass
-
-    # すでにUserデータが存在しないか確認
+      logging.debug("cookie exists")
+      user["uid2"] = uid2
+      sid = user["main_sid"]
+      uid = user["uid%d" % sid]
+      user_model = tanarky.model.User.get_by_key_name("%d-%s" % (sid, uid))
+      user_model.token2  = unicode(prof["token"])
+      user_model.secret2 = unicode(prof["secret"])
 
     # Userデータ登録
-    sid = 2
-    uid = unicode(prof["id"])
-    user_model = tanarky.model.User(
-      key_name = "%d-%s" % (sid, uid),
-      sid  = sid,
-      uid  = uid,
-      name = unicode(prof["username"]),
-      twitter_uid    = unicode(prof["id"]),
-      twitter_token  = unicode(prof["token"]),
-      twitter_secret = unicode(prof["secret"]),
-      )
     user_model.put()
 
-    user = {
-      "main_sid": 2,
-      "name" : unicode(prof["username"]),
-      "twitter_uid": unicode(prof["id"])
-      }
-    cookie_str = c.encode(**user)
-    logging.debug(cookie_str)
-    c.set(value=cookie_str,
-          headers=self.response.headers._headers)
-    self.redirect("/twitter")
+    user_cookie = tanarky.cookie.User()
+    cookie_str  = user_cookie.encode(**user)
+    user_cookie.set(value=cookie_str,
+                    headers=self.response.headers._headers)
+    return self.redirect("/twitter")
 
 #
 # 1. querystringにcodeがない場合(1回目アクセス)
@@ -316,30 +343,47 @@ class LoginFacebook(PageBase):
     access_token = client.get_access_token(code, scope)
     prof = client.lookup_user_info(access_token)
 
+    user = self.decode_u_cookie()
+    sid  = None
+    uid  = None
+    uid1 = unicode(prof["id"])
+    #
+    # Cookieを持っていない場合
+    #
+    if user == None:
+      logging.debug("no cookie")
+      sid  = 1
+      uid  = uid1
+      user = {
+        "main_sid": sid,
+        "name": unicode(prof["name"]),
+        "uid1": uid1,
+      }
+      user_model = tanarky.model.User(
+        key_name = "%d-%s" % (sid,uid),
+        main_sid = sid,
+        name     = user["name"],
+        uid1     = uid,
+        token1   = access_token)
+    #
+    # すでにCookieを持っている場合
+    #
+    else:
+      logging.debug("cookie exists")
+      user["uid1"] = uid1
+      sid = user["main_sid"]
+      uid = user["uid%d" % sid]
+      user_model = tanarky.model.User.get_by_key_name("%d-%s" % (sid, uid))
+      user_model.token1 = access_token
+
     # Userデータ登録
-    sid = 1
-    uid = unicode(prof["id"])
-    user_model = tanarky.model.User(
-      key_name = "%d-%s" % (sid, uid),
-      sid  = sid,
-      uid  = uid,
-      name = unicode(prof["name"]),
-      facebook_uid   = uid,
-      facebook_token = access_token)
     user_model.put()
 
-    user = {
-      "main_sid": sid,
-      "name" : unicode(prof["name"]),
-      "facebook_uid": unicode(prof["id"])
-      }
-
     user_cookie = tanarky.cookie.User()
-    cookie_str = user_cookie.encode(**user)
-    #logging.debug(cookie_str)
+    cookie_str  = user_cookie.encode(**user)
     user_cookie.set(value=cookie_str,
                     headers=self.response.headers._headers)
-    self.redirect("/facebook")
+    return self.redirect("/facebook")
 
 class Logout(PageBase):
   def get(self):
@@ -348,7 +392,7 @@ class Logout(PageBase):
           name  = "U",
           expires_in = -1 * 86400,
           headers=self.response.headers._headers)
-    self.redirect("/");
+    return self.redirect("/");
 
 class Error(PageBase):
   def get(self):
