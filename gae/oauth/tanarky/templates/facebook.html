@@ -39,22 +39,12 @@
         <div class="span11">
           <h2>Facebookの友達とじゃんけん！</h2>
           {% for f in friends %}
-          {% include 'friend.html' %}
+          {% include 'friend_facebook.html' %}
           {% endfor %}
 
           <div class="row">
             <div class="span11">
-              <div class="pagination">
-                <ul>
-                  <li class="prev disabled"><a href="#">&larr; Previous</a></li>
-                  <li class="active"><a href="#">1</a></li>
-                  <li><a href="#">2</a></li>
-                  <li><a href="#">3</a></li>
-                  <li><a href="#">4</a></li>
-                  <li><a href="#">5</a></li>
-                  <li class="next"><a href="#">Next &rarr;</a></li>
-                </ul>
-              </div>
+            {% include 'paging.html' %}
             </div>
           </div>
         </div>

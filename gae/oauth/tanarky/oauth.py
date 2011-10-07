@@ -123,6 +123,8 @@ class OAuthClient():
     payload = self.prepare_request(url, token, secret, additional_params,
                                    method)
 
+    logging.info(payload)
+
     if method == urlfetch.GET:
       url = "%s?%s" % (url, payload)
       payload = None
@@ -130,7 +132,10 @@ class OAuthClient():
     if protected:
       headers["Authorization"] = "OAuth"
 
+    logging.info(headers)
+
     rpc = urlfetch.create_rpc(deadline=10.0)
+
     urlfetch.make_fetch_call(rpc, url, method=method, headers=headers,
                              payload=payload)
     return rpc

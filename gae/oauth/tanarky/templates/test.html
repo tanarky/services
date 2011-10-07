@@ -1,18 +1,61 @@
 <!DOCTYPE html>
-<html>
-<head>
-  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-  <title>じゃんけん</title>
-  <link rel="stylesheet" href="/static/style.css" type="text/css">
-</head>
-<body>
-  <div id="title">
-    <h1>じゃんけん</h1>
-    <div>
-      <p>{{ hello }}</p>
-      <p><a href="/login">login</a></p>
-      <p><a href="/logout">logout</a></p>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>じゃんけんSNS</title>
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le styles -->
+    <link href="/static/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/style.css" rel="stylesheet">
+  </head>
+
+  <body>
+    {% include 'topbar.html' %}
+
+    <div class="container">
+
+      <div class="row">
+
+        
+
+
+<div class="span4">
+  <div class="row">
+    <div class="span2">
+      <div class="media-grid">
+        <a class="tooltip" href="#">
+          <img class="thumbnail" src="http://a3.twimg.com/profile_images/1477472421/t_icon_normal.jpg">
+        </a>
+      </div>
+      <p>あああいいいいいいいいいいいいいい</p>
+    </div>
+
+
+
+
+    <div class="span2">
+      あああ
+    </div>
+    <div class="span2">
+      あああいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいいい
     </div>
   </div>
-</body>
+</div>
+
+      </div>
+
+      {% include 'footer.html' %}
+
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.0/jquery.min.js"></script>
+<script src="/static/bootstrap-twipsy.js"></script>
+    </div> <!-- /container -->
+  </body>
 </html>

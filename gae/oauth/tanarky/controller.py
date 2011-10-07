@@ -35,20 +35,22 @@ class PageBase(webapp.RequestHandler):
   def get_tmpl_vars_paging(self, link, hits, current=1):
     paging = {"current":current,
               "link":link,
-              "navi":[current],
               "hits":hits,
               "max":int(math.ceil(float(hits)/10))}
 
-    if current > 1:
+    if 1 < current:
       paging["prev"] = current - 1
-    if current < paging["max"]:
+    if hits == 0 or current < paging["max"]:
       paging["next"] = current + 1
 
-    for x in range(1,5):
-      if current - x > 0:
-        paging["navi"].insert(0,current-x)
-      if current + x <= paging["max"]:
-        paging["navi"].append(current+x)
+    if 0 < hits:
+      paging["navi"] = [current]
+      for x in range(1,5):
+        if current - x > 0:
+          paging["navi"].insert(0,current-x)
+        if current + x <= paging["max"]:
+          paging["navi"].append(current+x)
+
     logging.debug(paging)
     return paging
 
@@ -59,13 +61,17 @@ class PageTest(PageBase):
     if user == None:
       return self.redirect("/");
 
-    helper     = tanarky.Helper()
-    user_model = helper.get_user_by_facebook_uid(user["facebook_uid"])
-    friends    = helper.get_facebook_friends_online(user_model.facebook_token)
-    logging.info(friends)
+    helper  = tanarky.Helper()
+    user_model = helper.get_user_by_facebook_uid(user["uid1"])
+    if user_model == None:
+      return self.redirect("/logout");
+
+    user = helper.get_facebook_friends_online(user_model.token1)
+    if user == None:
+      return self.redirect("/logout");
+
     self.response.headers['Content-type'] = 'application/json'
-    self.response.out.write(simplejson.dumps(friends, ensure_ascii=False))
-    return
+    self.response.out.write(simplejson.dumps(user, ensure_ascii=False))
 
 class PageResult(PageBase):
   def get(self):
@@ -133,6 +139,10 @@ class PageTwitter(PageBase):
                                 secret=user_model.secret2,
                                 additional_params={"user_id":user["uid2"]},
                                 protected=True)
+
+      logging.info(res.headers)
+      logging.info(res.content)
+
       fids = simplejson.loads(res.content)
       memcache.set(friend_uids_key,
                    fids,
@@ -148,6 +158,7 @@ class PageTwitter(PageBase):
       logging.debug("value error")
       page = 1
 
+    logging.info(fids)
     need_ids = fids[(10*(page-1)):(10*page)]
     logging.debug(need_ids)
     profs    = []
@@ -169,16 +180,19 @@ class PageTwitter(PageBase):
       if user_model == None:
         user_model = helper.get_user_by_twitter_uid(user["uid2"])
 
-      response = client.make_request("https://api.twitter.com/1/users/lookup.json",
-                                     token=user_model.token2,
-                                     secret=user_model.secret2,
-                                     additional_params={"user_id":",".join(no_ids),
-                                                        "include_entities":"0"},
-                                     protected=True)
+      response = client.make_request(
+        "https://api.twitter.com/1/users/lookup.json",
+        token=user_model.token2,
+        secret=user_model.secret2,
+        additional_params={"user_id":",".join(no_ids),
+                           "include_entities":"0"},
+        protected=True)
       r = simplejson.loads(response.content)
+      logging.info(response.content)
+      logging.info(r)
       cache_dic = {}
       for ff in r:
-        logging.debug(ff)
+        logging.info(ff)
         cache_val = {"img":ff["profile_image_url"],
                      "id":str(ff["id"]),
                      "name":ff["name"],
@@ -209,15 +223,27 @@ class PageFacebook(PageBase):
       logging.debug("no uid1. redirect to facebook login page")
       return self.redirect("/login/facebook")
 
-    cache_key = "facebook_online_%s" % user["uid1"]
+    try:
+      page = int(self.request.get("page", "1"))
+      if page < 1:
+        page = 1
+    except ValueError:
+      logging.debug("value error")
+      page = 1
+
+    cache_key = "facebook_online_%s_%d" % (user["uid1"],page)
     friends   = memcache.get(cache_key)
 
+    limit = 10
     if friends == None:
       helper     = tanarky.Helper()
       user_model = helper.get_user_by_facebook_uid(user["uid1"])
       if user_model == None:
         return self.redirect("/login/facebook")
-      friends    = helper.get_facebook_friends_online(user_model.token1)
+
+      friends = helper.get_facebook_friends_online(user_model.token1,
+                                                   limit=limit,
+                                                   page=page)
       cache_dic = {}
       cache_dic[cache_key] = friends
       memcache.set_multi(cache_dic,
@@ -225,11 +251,21 @@ class PageFacebook(PageBase):
     else:
       logging.info("cache hit")
 
-    logging.info(friends)
+    #logging.info(friends)
+
+    hits = -1
+    if len(friends) == limit + 1:
+      friends.pop()
+      hits = 0
+    logging.debug("len %d" % len(friends))
 
     tmpl_vars = {}
     tmpl_vars["name"] = user["name"]
-    tmpl_vars["friends"] = range(0,10)
+    tmpl_vars["friends"] = friends
+    tmpl_vars["paging"]  = self.get_tmpl_vars_paging(link="/facebook",
+                                                     hits=hits,
+                                                     current=page)
+
     path = os.path.join(os.path.dirname(__file__),
                         'templates/facebook.html')
     self.response.out.write(template.render(path,
@@ -301,7 +337,7 @@ class LoginTwitter(PageBase):
         name     = user["name"],
         uid2     = uid2,
         token2   = unicode(prof["token"]),
-        srcret2  = unicode(prof["secret"]),
+        secret2  = unicode(prof["secret"]),
         )
     #
     # すでにCookieを持っている場合
@@ -312,8 +348,12 @@ class LoginTwitter(PageBase):
       sid = user["main_sid"]
       uid = user["uid%d" % sid]
       user_model = tanarky.model.User.get_by_key_name("%d-%s" % (sid, uid))
+      user_model.uid2    = uid2
       user_model.token2  = unicode(prof["token"])
       user_model.secret2 = unicode(prof["secret"])
+      # FIXME: merge
+      if user_model.main_sid != 2:
+        pass
 
     # Userデータ登録
     user_model.put()
@@ -374,7 +414,11 @@ class LoginFacebook(PageBase):
       sid = user["main_sid"]
       uid = user["uid%d" % sid]
       user_model = tanarky.model.User.get_by_key_name("%d-%s" % (sid, uid))
+      user_model.uid1   = uid1
       user_model.token1 = access_token
+      if user_model.main_sid != 1:
+        # FIXME: merge
+        pass
 
     # Userデータ登録
     user_model.put()

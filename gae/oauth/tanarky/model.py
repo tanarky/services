@@ -13,12 +13,10 @@ class User(db.Expando):
     # facebook
     uid1            = db.StringProperty(required=False)
     token1          = db.StringProperty(required=False)
-    has_child_id1   = db.BooleanProperty(required=False)
     # twitter
     uid2            = db.StringProperty(required=False)
     token2          = db.StringProperty(required=False)
     secret2         = db.StringProperty(required=False)
-    has_child_id2   = db.BooleanProperty(required=False)
 
     ## yahoo.co.jp
     #uid3             = db.BlobProperty(required=False)

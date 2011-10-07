@@ -20,11 +20,14 @@ class Helper():
         return tanarky.model.User.gql("WHERE uid2 = :1",uid).get()
     def get_user_by_facebook_uid(self, uid):
         return tanarky.model.User.gql("WHERE uid1 = :1",uid).get()
-    def get_facebook_friends_online(self, access_token):
+    def get_facebook_friends_online(self, access_token, limit=10, page=1):
+        offset = limit * (page - 1)
+        logging.debug("%d , %d" % (limit, offset))
+
         query = \
-            "SELECT uid, name, pic_square,online_presence FROM user "   + \
+            "SELECT uid, name, username, pic_square,online_presence FROM user " + \
             "WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = me()) " + \
-            "order by online_presence limit 10"
+            "order by online_presence limit %d offset %d" % (limit+1, offset)
         url = self.fql + urllib.urlencode({"access_token":access_token,
                                            "format":"json",
                                            "query":query})
