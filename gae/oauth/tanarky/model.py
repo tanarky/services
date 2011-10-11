@@ -26,3 +26,14 @@ class User(db.Expando):
     #auth_expire_ut3  = db.IntegerProperty(required=False)
     #session_handle3  = db.DateProperty(required=False)
     #has_child_id3    = db.BooleanProperty(required=False)
+
+class Game(db.Expando):
+    from_sid   = db.IntegerProperty(required=True)
+    from_uid   = db.StringProperty(required=True)
+    from_hands = db.ListProperty(int)
+    to_sid     = db.IntegerProperty(required=False)
+    to_uid     = db.StringProperty(required=False)
+    to_hands   = db.ListProperty(int)
+    status     = db.IntegerProperty(required=True)
+    created    = db.DateTimeProperty(auto_now_add=True)
+    updated    = db.DateTimeProperty(auto_now=True)

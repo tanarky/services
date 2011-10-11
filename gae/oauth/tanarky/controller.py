@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import ConfigParser, os, logging, urllib, urllib2, time, hmac, cgi, Cookie, email,math
+import ConfigParser, os, logging, urllib, urllib2, time, hmac, cgi, Cookie, email,math, random
 
 from google.appengine.ext import webapp, db
 from google.appengine.ext.webapp import template
@@ -12,6 +12,17 @@ import tanarky.cookie
 import tanarky.model
 
 class PageBase(webapp.RequestHandler):
+  def get_msg_from_cookie(self):
+    msg_cookie= tanarky.cookie.Message()
+
+    logging.info(msg_cookie.name)
+    logging.error(self.request.cookies.get("M"))
+
+    msg = msg_cookie.decode(self.request.cookies.get(msg_cookie.name))
+    msg_cookie.clear(headers=self.response.headers._headers)
+    logging.error(msg)
+    return msg
+
   def get_oauth_client(self, name):
     if name == "twitter":
       app_id     = tanarky.config.get("twitter_test", "app_id")
@@ -87,7 +98,66 @@ class PageResult(PageBase):
                                             tmpl_vars))
     return
 
-class PageChallenge(PageBase):
+class PageTwitterOffer(PageBase):
+  def get(self):
+    user = self.decode_u_cookie()
+    if user == None:
+      return self.redirect("/");
+
+    uid     = self.request.get("uid", "")
+    name    = self.request.get("name", "")
+    account = self.request.get("account", "")
+    req_sig = self.request.get("sig", "")
+
+    if uid == "" or name == "" or account == "":
+      return self.redirect("/twitter");
+
+    helper = tanarky.Helper()
+    s = "/".join([uid,name,account])
+    sig = helper.get_params_signature(s)
+    if sig != req_sig:
+      logging.error("invalid offer sig")
+      return self.redirect("/twitter");
+
+    #hands = [{"index":1, "rand":1},{}]
+    hands = []
+    for i in range(1,4):
+      h = {"index":i, "rand":random.randint(1,3)}
+      hands.append(h)
+
+    tmpl_vars = {}
+    tmpl_vars["name"]    = name
+    tmpl_vars["sid"]     = 2
+    tmpl_vars["uid"]     = uid
+    tmpl_vars["account"] = account
+    tmpl_vars["hands"]   = hands
+    path = os.path.join(os.path.dirname(__file__),
+                        'templates/twitter_offer.html')
+    return self.response.out.write(template.render(path,
+                                                   tmpl_vars))
+  def post(self):
+    user = self.decode_u_cookie()
+    if user == None:
+      return self.redirect("/");
+
+    game_model = tanarky.model.Game(
+      from_sid = user["main_sid"],
+      from_uid = user["uid%d" % user["main_sid"]],
+      from_hands = [int(self.request.get("hand1")),
+                    int(self.request.get("hand2")),
+                    int(self.request.get("hand3"))],
+      to_sid = user["main_sid"],
+      to_uid = self.request.get("uid"),
+      status = 0
+      )
+    game_model.put()
+    msg_cookie = tanarky.cookie.Message()
+    msg_str = msg_cookie.encode(body="申し込みを受け付けました")
+    msg_cookie.set(value=msg_str,
+                   headers=self.response.headers._headers)
+    return self.redirect("/twitter");
+
+class PageFacebookOffer(PageBase):
   def get(self):
     user = self.decode_u_cookie()
     if user == None:
@@ -193,10 +263,13 @@ class PageTwitter(PageBase):
       cache_dic = {}
       for ff in r:
         logging.info(ff)
+        s = "/".join([unicode(ff["id"]),ff["name"],ff["screen_name"]])
         cache_val = {"img":ff["profile_image_url"],
-                     "id":str(ff["id"]),
+                     "uid":str(ff["id"]),
                      "name":ff["name"],
-                     "screen_name":ff["screen_name"],
+                     "account":ff["screen_name"],
+                     "encoded_name":urllib.quote(ff["name"].encode("utf-8")),
+                     "sig":helper.get_params_signature(s),
                      "desc":ff["description"]}
         f.append(cache_val)
         cache_key = "prof_twitter_%s" % ff["id"]
@@ -207,6 +280,7 @@ class PageTwitter(PageBase):
     tmpl_vars = {}
     tmpl_vars["name"]    = user["name"]
     tmpl_vars["friends"] = f
+    tmpl_vars["message"] = self.get_msg_from_cookie()
     tmpl_vars["paging"]  = self.get_tmpl_vars_paging(link="/twitter",
                                                      hits=len(fids),
                                                      current=page)
@@ -362,7 +436,9 @@ class LoginTwitter(PageBase):
     cookie_str  = user_cookie.encode(**user)
     user_cookie.set(value=cookie_str,
                     headers=self.response.headers._headers)
-    return self.redirect("/twitter")
+
+    redirect_to = self.request.get("rd", "/twitter")
+    return self.redirect(redirect_to)
 
 #
 # 1. querystringにcodeがない場合(1回目アクセス)
@@ -414,6 +490,8 @@ class LoginFacebook(PageBase):
       sid = user["main_sid"]
       uid = user["uid%d" % sid]
       user_model = tanarky.model.User.get_by_key_name("%d-%s" % (sid, uid))
+      if user_model == None:
+        return self.redirect("/logout")
       user_model.uid1   = uid1
       user_model.token1 = access_token
       if user_model.main_sid != 1:
@@ -427,15 +505,14 @@ class LoginFacebook(PageBase):
     cookie_str  = user_cookie.encode(**user)
     user_cookie.set(value=cookie_str,
                     headers=self.response.headers._headers)
-    return self.redirect("/facebook")
+
+    redirect_to = self.request.get("rd", "/facebook")
+    return self.redirect(redirect_to)
 
 class Logout(PageBase):
   def get(self):
     c = tanarky.cookie.User()
-    c.set(value = "",
-          name  = "U",
-          expires_in = -1 * 86400,
-          headers=self.response.headers._headers)
+    c.clear(self.response.headers._headers)
     return self.redirect("/");
 
 class Error(PageBase):

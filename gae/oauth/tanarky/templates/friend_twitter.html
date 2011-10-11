@@ -6,21 +6,11 @@
       </a>
     </div>
   </div>
-<!--
-  <div class="span7">
--->
   <div class="span8">
     <p class="friends">
-      <a class="tooltip screen-name" href="/challenge?id={{f.id}}" rel="twipsy" data-original-title="勝負を申し込む">{{ f.name }}</a>
-      <span class="name">{{ f.screen_name }}</span>
+      <a class="tooltip screen-name" href="/twitter/offer?uid={{f.uid}}&amp;account={{ f.account }}&amp;name={{ f.encoded_name }}&amp;sig={{ f.sig }}" rel="twipsy" data-original-title="勝負を申し込む">{{ f.name }}</a>
+      <span class="name">{{ f.account }}</span>
     </p>
     <p>{{ f.desc }}</p>
   </div>
-<!--
-  <div class="span2">
-    <p><span class="label success">Win</span> :100000</p>
-    <p><span class="label notice">Draw</span> :10</p>
-    <p><span class="label warning">Lose</span> :10</p>
-  </div>
--->
 </div>

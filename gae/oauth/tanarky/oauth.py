@@ -16,7 +16,7 @@ from urllib import unquote as urlunquote
 import urllib2
 
 import logging
-
+import tanarky
 
 TWITTER  = "twitter"
 YAHOO    = "yahoo"

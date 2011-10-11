@@ -25,16 +25,7 @@ signature:version|main_sid|name|uid1|uid2|uid3|uid4|uid5..
 5 = mixi.jp
 """
 
-class User():
-  def __init__(self):
-    self.services = ["facebook","twitter","yahoocom","yahoojp","mixi"]
-    self.version  = float(tanarky.config.get("cookie", "version"))
-
-  def get(self, key, default=None):
-    if isinstance(self.value, dict) and self.value.has_key(key):
-      return self.value[key]
-    else:
-      return default
+class Base():
 
   def decode(self,rawstr):
     if rawstr == None:
@@ -70,6 +61,74 @@ class User():
     else:
       logging.debug("version none")
       return None
+
+  def set(self, value, headers, expires_in=None):
+    if expires_in == None:
+      expires_in = self.expires_in
+
+    cookie = Cookie.BaseCookie()
+    cookie[self.name]            = value
+    cookie[self.name]["path"]    = self.path
+    cookie[self.name]["expires"] = email.utils.formatdate(
+      time.time()+expires_in,
+      localtime=False,
+      usegmt=True)
+    headers.append(("Set-Cookie", cookie.output()[12:]))
+    return True
+
+  def clear(self, headers):
+    self.set(value = "",
+             expires_in = -1 * 86400,
+             headers=headers)
+    return True
+
+class Message(Base):
+  def __init__(self):
+    self.name    = "M"
+    self.path    = "/"
+    self.expires_in = 900
+    self.version = float(tanarky.config.get("cookie", "version"))
+
+  def decode_version1(self,rawstr):
+    params  = rawstr.split("|")
+    version = float(params[0])
+    #body    = urllib.unquote(unicode(params[1]).encode('utf-8')).decode('utf-8')
+    body    = urllib.unquote(params[1].encode('utf-8')).decode('utf-8')
+    return {"version":version,
+            "body":body}
+
+  def encode(self,**params):
+    if not params.has_key("body"):
+      return None
+    if isinstance(params["body"], str):
+      params["body"] = params["body"].decode('utf-8')
+    if not isinstance(params["body"], unicode):
+      return None
+
+    vals = []
+    vals.append(str(self.version))
+    vals.append(urllib.quote(params["body"].encode('utf-8')).decode('utf-8'))
+
+    value = "|".join(vals)
+    hash  = hmac.new(tanarky.config.get("cookie","secret"),
+                     digestmod=hashlib.sha1)
+    hash.update(value)
+    return "%s:%s" % (hash.hexdigest(), value)
+
+
+class User(Base):
+  def __init__(self):
+    self.name     = "U"
+    self.path     = "/"
+    self.expires_in = 30*36400
+    self.services = ["facebook","twitter","yahoocom","yahoojp","mixi"]
+    self.version  = float(tanarky.config.get("cookie", "version"))
+
+  def get(self, key, default=None):
+    if isinstance(self.value, dict) and self.value.has_key(key):
+      return self.value[key]
+    else:
+      return default
 
   def decode_version1(self,rawstr):
     #
@@ -145,15 +204,6 @@ class User():
 
     return "%s:%s" % (hash.hexdigest(), value)
 
-  def set(self, value, headers, name="U", path="/", expires_in=30*36400):
-    cookie = Cookie.BaseCookie()
-    cookie[name]            = value
-    cookie[name]["path"]    = path
-    cookie[name]["expires"] = email.utils.formatdate(time.time()+expires_in,
-                                                     localtime=False,
-                                                     usegmt=True)
-    headers.append(("Set-Cookie", cookie.output()[12:]))
-    return True
     
 
       

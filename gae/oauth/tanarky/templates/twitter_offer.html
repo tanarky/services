@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>じゃんけんSNS</title>
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le styles -->
+    <link href="/static/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/style.css" rel="stylesheet">
+  </head>
+
+  <body>
+    {% include 'topbar.html' %}
+
+    <div class="container">
+      <div class="row">
+        <div class="span11">
+
+<form action="/twitter/offer" method="POST">
+  <fieldset>
+    <legend><span class="username">{{ name }}</span>と勝負する</legend>
+
+    <div class="clearfix">
+      <label>期限</label>
+      <div class="input">
+        <select name="limit">
+          <option value="1">１日</option>
+          <option value="2">２日</option>
+          <option value="3">３日</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="clearfix">
+      <label>挑戦相手</label>
+      <div class="input">
+        <div class="input-prepend">
+          <span class="add-on">@</span>
+          <input id="input1" disabled="" size="30" type="text" class="xlarge" name="account" value="{{ account }}">
+        </div>
+      </div>
+    </div>
+
+    {% for h in hands %}
+    <div class="clearfix">
+      <label>あなたの出す手{{ h.index }}</label>
+      <div class="input">
+        <select name="hand{{ h.index }}">
+          <option value="1" {%if h.rand == 1%}selected{% endif %}>グー</option>
+          <option value="2" {%if h.rand == 2%}selected{% endif %}>チョキ</option>
+          <option value="3" {%if h.rand == 3%}selected{% endif %}>パー</option>
+        </select>
+      </div>
+    </div>
+    {% endfor %}
+
+    <div class="clearfix">
+      <label>何を賭ける？</label>
+      <div class="input">
+        <div class="input-append">
+          <input id="input1" size="30" type="text" class="xlarge" name="bid" value="">
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <a class="btn" href="/twitter">やっぱりやめる</a>
+      <input type="hidden" name="sid" value="{{ sid }}">
+      <input type="hidden" name="uid" value="{{ uid }}">
+      <input type="hidden" name="name" value="{{ name }}">
+      <input class="btn primary" type="submit" value="挑戦！">
+    </div>
+  </fieldset>
+</form>
+        </div>
+
+        <div class="span5">
+          <div id="chart_div"></div>
+          <div id="chart_div2"></div>
+        </div>
+      </div>
+
+      {% include 'footer.html' %}
+
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.0/jquery.min.js"></script>
+<script src="/static/bootstrap-twipsy.js"></script>
+<script>
+google.load("visualization", "1", {packages:["corechart"]});
+  //google.setOnLoadCallback(drawChart);
+  //google.setOnLoadCallback(drawChart2);
+
+$(function () {
+  $("a[rel=twipsy]").twipsy({
+    live: true
+  });
+
+  function drawChart() {
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Task');
+    data.addColumn('number', 'Hours per Day');
+    data.addRows(5);
+    data.setValue(0, 0, 'Work');
+    data.setValue(0, 1, 11);
+    data.setValue(1, 0, 'Eat');
+    data.setValue(1, 1, 2);
+    data.setValue(2, 0, 'Commute');
+    data.setValue(2, 1, 2);
+    data.setValue(3, 0, 'Watch TV');
+    data.setValue(3, 1, 2);
+    data.setValue(4, 0, 'Sleep');
+    data.setValue(4, 1, 7);
+  
+    var chart = new google.visualization.PieChart(document.getElementById('chart_div'));
+    chart.draw(data, {width: 300, height: 200, title: 'My Daily Activities'});
+  }
+  function drawChart2() {
+    var data = new google.visualization.DataTable();
+    data.addColumn('string', 'Task');
+    data.addColumn('number', 'Hours per Day');
+    data.addRows(5);
+    data.setValue(0, 0, 'グー');
+    data.setValue(0, 1, 11);
+    data.setValue(1, 0, 'チョキ');
+    data.setValue(1, 1, 2);
+    data.setValue(2, 0, 'パー');
+    data.setValue(2, 1, 2);
+  
+    var chart = new google.visualization.PieChart(document.getElementById('chart_div2'));
+    chart.draw(data, {width: 300, height: 200, title: 'My Daily Activities'});
+  }
+
+  drawChart();
+  drawChart2();
+})
+</script>
+    </div> <!-- /container -->
+  </body>
+</html>

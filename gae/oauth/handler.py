@@ -14,15 +14,16 @@ import tanarky.controller
 
 application = webapp.WSGIApplication(
   [(r'/', tanarky.controller.PageHome),
-   (r'/challenge',      tanarky.controller.PageChallenge),
    (r'/reject',         tanarky.controller.PageReject),
    (r'/result',         tanarky.controller.PageResult),
    (r'/twitter',        tanarky.controller.PageTwitter),
+   (r'/twitter/offer',  tanarky.controller.PageTwitterOffer),
    (r'/facebook',       tanarky.controller.PageFacebook),
+   (r'/facebook/offer', tanarky.controller.PageFacebookOffer),
    (r'/login/twitter',  tanarky.controller.LoginTwitter),
    (r'/login/facebook', tanarky.controller.LoginFacebook),
-   (r'/test',           tanarky.controller.PageTest),
    (r'/logout',         tanarky.controller.Logout),
+   (r'/test',           tanarky.controller.PageTest),
    (r'/.*',             tanarky.controller.Error),
    ],
   debug=True)
