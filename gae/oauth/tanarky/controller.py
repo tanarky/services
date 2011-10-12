@@ -40,9 +40,11 @@ class PageBase(webapp.RequestHandler):
 
   def decode_u_cookie(self):
     return tanarky.cookie.User().decode(self.request.cookies.get("U"))
+
   def get_tmpl_path(self, name):
     return os.path.join(os.path.dirname(__file__),
                         'templates/%s.html' % name)
+
   def get_tmpl_vars_paging(self, link, hits, current=1):
     paging = {"current":current,
               "link":link,
@@ -116,7 +118,6 @@ class PageTwitterOffer(PageBase):
     s = "/".join([uid,name,account])
     sig = helper.get_params_signature(s)
     if sig != req_sig:
-      logging.error("invalid offer sig")
       return self.redirect("/twitter");
 
     #hands = [{"index":1, "rand":1},{}]
@@ -138,16 +139,18 @@ class PageTwitterOffer(PageBase):
   def post(self):
     user = self.decode_u_cookie()
     if user == None:
-      return self.redirect("/");
+      return self.redirect("/")
 
     game_model = tanarky.model.Game(
       from_sid = user["main_sid"],
+      from_name = user["name"],
       from_uid = user["uid%d" % user["main_sid"]],
       from_hands = [int(self.request.get("hand1")),
                     int(self.request.get("hand2")),
                     int(self.request.get("hand3"))],
       to_sid = user["main_sid"],
       to_uid = self.request.get("uid"),
+      to_name = self.request.get("name"),
       status = 0
       )
     game_model.put()
@@ -155,6 +158,14 @@ class PageTwitterOffer(PageBase):
     msg_str = msg_cookie.encode(body="申し込みを受け付けました")
     msg_cookie.set(value=msg_str,
                    headers=self.response.headers._headers)
+
+    logging.error(user)
+    helper = tanarky.Helper()
+    user_model = helper.get_user_by_twitter_uid(user["uid2"])
+    logging.error(user_model)
+    client = self.get_oauth_client("twitter")
+    client.tweet(user_model.token2, user_model.secret2, self.request.get("bid"))
+
     return self.redirect("/twitter");
 
 class PageFacebookOffer(PageBase):

@@ -323,6 +323,19 @@ class TwitterClient(OAuthClient):
 
     return user_info
 
+  def tweet(self, access_token, access_secret, message):
+    logging.error(message)
+    logging.error(access_token)
+    logging.error(access_secret)
+    response = self.make_request(
+      "http://api.twitter.com/statuses/update.json",
+      token=access_token,
+      secret=access_secret,
+      additional_params={"status": message},
+      method=urlfetch.POST,
+      protected=True)
+    logging.error(response)
+
 
 class FacebookClient(OAuthClient):
 
