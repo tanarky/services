@@ -21,67 +21,57 @@
 
     <div class="container">
       <div class="row">
+        <div class="span11">
 
-{% if result.win == 0 %}
-<div class="span16">
-  <div class="alert-message block-message warning">
-    引き分けです！
-  </div>
-</div>
-{% endif %}
-
-<div class="span6">
-{% if result.win == 1 %}
-  <div class="alert-message block-message success" style="text-align:center">
-    <b>{{ result.from_name}}{% if result.you == 1 %}(あなた){% endif%}</b>の勝ち
-  </div>
-{% endif %}
-{% if result.win == 2 %}
-  <div class="alert-message block-message error" style="text-align:center">
-    <b>{{ result.from_name}}{% if result.you == 1 %}(あなた){% endif%}</b>の負け
-  </div>
-{% endif %}
-</div>
-<div class="span4">
-  <!-- 手を書く? -->
-  &nbsp;
-</div>
-<div class="span6">
-{% if result.win == 2 %}
-  <div class="alert-message block-message success" style="text-align:center">
-    <b>{{ result.to_name}}{% if result.you == 2 %}(あなた){% endif%}</b>の勝ち
-  </div>
-{% endif %}
-{% if result.win == 1 %}
-  <div class="alert-message block-message error" style="text-align:center">
-    <b>{{ result.to_name}}{% if result.you == 2 %}(あなた){% endif%}</b>の負け
-  </div>
-{% endif %}
-</div>
-
-
-<div class="span16">
-
-<form action="/result" method="GET">
+<form action="/receive" method="POST">
   <fieldset>
-    <legend></legend>
+    <legend><span class="username">{{ account }}</span>からの勝負を受ける</legend>
+
     <div class="clearfix">
-      <label>感想</label>
+      <label>対戦相手</label>
       <div class="input">
-        <input id="input1" size="30" type="text" class="xlarge" name="input1">
+        <div class="input-prepend">
+          <span class="add-on">@</span>
+          <input id="input1" disabled="" size="30" type="text" class="xlarge" name="account" value="{{ account }}">
+        </div>
+      </div>
+    </div>
+
+    {% for h in hands %}
+    <div class="clearfix">
+      <label>あなたの出す手{{ h.index }}</label>
+      <div class="input">
+        <select name="hand{{ h.index }}">
+          <option value="1" {%if h.rand == 1%}selected{% endif %}>グー</option>
+          <option value="2" {%if h.rand == 2%}selected{% endif %}>チョキ</option>
+          <option value="3" {%if h.rand == 3%}selected{% endif %}>パー</option>
+        </select>
+      </div>
+    </div>
+    {% endfor %}
+
+    <div class="clearfix">
+      <label>勝った方が○○する</label>
+      <div class="input">
+        <div class="input-append">
+          <input id="input1" disabled="" size="30" type="text" class="xlarge" name="prize" value="{{ prize }}">
+        </div>
       </div>
     </div>
 
     <div class="actions">
-      <a class="btn" href="/">このまま逃げる</a>
-      <input class="btn primary" type="submit" value="もう一度勝負する">
+      <a class="btn" href="/twitter">やっぱりやめる</a>
+      <input type="hidden" name="offer" value="{{ offer }}">
+      <input class="btn primary" type="submit" value="挑戦！">
     </div>
   </fieldset>
 </form>
+        </div>
 
-
-</div>
-
+        <div class="span5">
+          <div id="chart_div"></div>
+          <div id="chart_div2"></div>
+        </div>
       </div>
 
       {% include 'footer.html' %}

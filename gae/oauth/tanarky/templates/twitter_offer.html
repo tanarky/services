@@ -28,17 +28,6 @@
     <legend><span class="username">{{ name }}</span>と勝負する</legend>
 
     <div class="clearfix">
-      <label>期限</label>
-      <div class="input">
-        <select name="limit">
-          <option value="1">１日</option>
-          <option value="2">２日</option>
-          <option value="3">３日</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="clearfix">
       <label>挑戦相手</label>
       <div class="input">
         <div class="input-prepend">
@@ -62,10 +51,10 @@
     {% endfor %}
 
     <div class="clearfix">
-      <label>何を賭ける？</label>
+      <label>勝った方が○○する</label>
       <div class="input">
         <div class="input-append">
-          <input id="input1" size="30" type="text" class="xlarge" name="bid" value="">
+          <input id="input1" size="30" type="text" class="xlarge" name="prize" value="">
         </div>
       </div>
     </div>

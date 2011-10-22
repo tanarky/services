@@ -61,32 +61,57 @@
         </div>
       </div>
 
+{% if from_results %}
       <div class="row">
         <div class="span16">
+          <h3>あなたが挑戦した相手</h3>
           <table class="zebra-striped">
             <thead>
-              <th>No.</th>
-              <th>ああああああ</th>
-              <th>いいいいいい</th>
+              <tr>
+                <th>No.</th>
+                <th>from</th>
+                <th>to</th>
+              </tr>
             </thead>
-            <tr>
-              <td>1</td>
-              <td>ああああああううううううううううううう</td>
-              <td>いいいいいいううううううううううううう</td>
-            </tr>
-            <tr>
-              <td>2</td>
-              <td>ああああああううううううううううううう</td>
-              <td>いいいいいいううううううううううううう</td>
-            </tr>
-            <tr>
-              <td>3</td>
-              <td>ああああああううううううううううううう</td>
-              <td>いいいいいいううううううううううううう</td>
-            </tr>
+            <tbody>
+{% for r in from_results %}
+              <tr>
+                <td><a href="/result?id={{r.id}}">{{ r.id }}</a></td>
+                <td>{{ r.from_name }}</td>
+                <td>{{ r.to_name }}</td>
+              </tr>
+{% endfor %}
+            </tbody>
           </table>
         </div>
       </div>
+{% endif %}
+
+{% if to_results %}
+      <div class="row">
+        <div class="span16">
+          <h3>あなたが挑戦を受けた相手</h3>
+          <table class="zebra-striped">
+            <thead>
+              <tr>
+                <th>No.</th>
+                <th>from</th>
+                <th>to</th>
+              </tr>
+            </thead>
+            <tbody>
+{% for r in to_results %}
+              <tr>
+                <td><a href="/result?id={{r.id}}">{{ r.id }}</a></td>
+                <td>{{ r.from_name }}</td>
+                <td>{{ r.to_name }}</td>
+              </tr>
+{% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+{% endif %}
 
       {% include 'footer.html' %}
 

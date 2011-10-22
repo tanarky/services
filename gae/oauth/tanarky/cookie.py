@@ -25,7 +25,7 @@ signature:version|main_sid|name|uid1|uid2|uid3|uid4|uid5..
 5 = mixi.jp
 """
 
-class Base():
+class Base(object):
 
   def decode(self,rawstr):
     if rawstr == None:
@@ -167,6 +167,7 @@ class User(Base):
       if uids[i] != "":
         ret[key] = uids[i]
 
+    ret["main_uid"] = ret["uid%d" % ret["main_sid"]]
     return ret
 
   def encode(self,**params):

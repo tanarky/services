@@ -56,7 +56,7 @@ class AuthToken(db.Model):
   created = db.DateTimeProperty(auto_now_add=True)
 
 
-class OAuthClient():
+class OAuthClient(object):
 
   def __init__(self, service_name, consumer_key, consumer_secret, request_url,
                access_url, callback_url=None):

@@ -12,15 +12,72 @@ import tanarky.cookie
 import tanarky.model
 
 class PageBase(webapp.RequestHandler):
+  def parse_result(self, result, user=None):
+    r = {"id": result.key().id(),
+         "from_name": result.from_name,
+         "to_name": result.to_name,
+         "win":0}
+
+    for i in range(0,3):
+      if result.from_hands[i] == result.to_hands[i]:
+        continue
+
+      if result.from_hands[i] == 1 and result.to_hands[i] == 2:
+        r["win"] = 1
+      elif result.from_hands[i] == 1 and result.to_hands[i] == 3:
+        r["win"] = 2
+      if result.from_hands[i] == 2 and result.to_hands[i] == 1:
+        r["win"] = 2
+      elif result.from_hands[i] == 2 and result.to_hands[i] == 3:
+        r["win"] = 1
+      if result.from_hands[i] == 3 and result.to_hands[i] == 1:
+        r["win"] = 1
+      elif result.from_hands[i] == 3 and result.to_hands[i] == 2:
+        r["win"] = 2
+
+      break
+
+    if user != None:
+      if result.from_sid == user["main_sid"] and result.from_uid == user["main_uid"]:
+        r["you"] = 1
+      elif result.to_sid == user["main_sid"] and result.to_uid == user["main_uid"]:
+        r["you"] = 2
+
+    return r
+
+  def get_results_by_from_user(self, user):
+    ret = []
+    res = tanarky.model.Result.gql("WHERE from_sid=:sid and from_uid=:uid order by updated desc",
+                                   sid = user["main_sid"],
+                                   uid = user["main_uid"]).fetch(100,0)
+    for r in res:
+      logging.error(r)
+      ret.append(self.parse_result(r))
+    return ret
+
+  def get_results_by_to_user(self, user):
+    ret = []
+    res = tanarky.model.Result.gql("WHERE to_sid=:sid and to_uid=:uid order by updated",
+                                   sid = user["main_sid"],
+                                   uid = user["main_uid"]).fetch(100,0)
+    for r in res:
+      ret.append(self.parse_result(r))
+    return ret
+
+  def get_alert(self, user):
+    return tanarky.model.Alert.gql("WHERE sid=:sid and uid=:uid", 
+                                   sid = user["main_sid"],
+                                   uid = user["main_uid"]).get()
+
   def get_msg_from_cookie(self):
     msg_cookie= tanarky.cookie.Message()
 
-    logging.info(msg_cookie.name)
-    logging.error(self.request.cookies.get("M"))
+    logging.debug(msg_cookie.name)
+    logging.debug(self.request.cookies.get("M"))
 
     msg = msg_cookie.decode(self.request.cookies.get(msg_cookie.name))
     msg_cookie.clear(headers=self.response.headers._headers)
-    logging.error(msg)
+    logging.debug(msg)
     return msg
 
   def get_oauth_client(self, name):
@@ -70,35 +127,153 @@ class PageBase(webapp.RequestHandler):
 
 class PageTest(PageBase):
   def get(self):
+    self.response.out.write("ok")
+  def post(self):
+    self.response.out.write("ok")
+
+class PageReceive(PageBase):
+  """
+  申し込みを受けて処理をするページ
+  関係ない人が見たら、申込内容を表示する
+  """
+  def get(self):
+    """
+    URLのsigがあっているか確認
+    必要なパラメータ:
+      sig
+      offer_id
+    """
+    # 略
+
+    """
+    ログインしていない場合はログインページへ?
+    それとも、ログインしてくださいページを表示する?
+    """
     user = self.decode_u_cookie()
-    if user == None:
-      return self.redirect("/");
+    url  = "/login/twitter?rd=%s" % urllib.quote(self.request.path_qs)
+    if user == None or not user["uid2"]:
+      return self.redirect(url)
 
-    helper  = tanarky.Helper()
-    user_model = helper.get_user_by_facebook_uid(user["uid1"])
-    if user_model == None:
-      return self.redirect("/logout");
+    """
+    offerデータを取得、なければ/twitterへ
+    """
+    offer_id = self.request.get("offer")
+    offer = tanarky.model.Offer.get_by_key_name(offer_id)
+    if offer == None:
+      return self.redirect(url)
 
-    user = helper.get_facebook_friends_online(user_model.token1)
-    if user == None:
-      return self.redirect("/logout");
+    """
+    offerデータのto_userと閲覧者が一致しているかを確認
+    一致しなければ、現在の登録情報を表示して終了
+    一致していれば、入力フォームを表示して終了
+    """
+    if offer.to_uid != user["uid2"]:
+      # FIXME: エラー処理書くのがだるかったので、/に飛ばしてる
+      return self.redirect("/")
 
-    self.response.headers['Content-type'] = 'application/json'
-    self.response.out.write(simplejson.dumps(user, ensure_ascii=False))
+    hands = []
+    for i in range(1,4):
+      h = {"index":i, "rand":random.randint(1,3)}
+      hands.append(h)
+
+    tmpl_vars = {}
+    tmpl_vars["offer"]   = offer_id
+    tmpl_vars["account"] = offer.from_name
+    tmpl_vars["hands"]   = hands
+    tmpl_vars["prize"]   = offer.prize
+    path = os.path.join(os.path.dirname(__file__),
+                        'templates/offer_receive.html')
+    return self.response.out.write(template.render(path,tmpl_vars))
+
+  def post(self):
+    """
+    必要なパラメータ:
+      sig
+      offer_id
+      to_hands
+    sigやuserデータが正しいかチェックなど
+    """
+    offer_id = self.request.get("offer")
+    to_hands = [int(self.request.get("hand1")),
+                int(self.request.get("hand2")),
+                int(self.request.get("hand3"))]
+
+    """
+    offerデータを取得、なければ直近のResultページに飛ばす?
+    """
+    offer = tanarky.model.Offer.get_by_key_name(offer_id)
+    if offer == None:
+      logging.error("no offer")
+      return self.redirect(url)
+
+    """
+    offerデータからResultデータに登録
+    結果が成立したので、alertデータを消す
+    userごとのLogデータに保存
+    """
+    result = tanarky.model.Result(
+      from_sid = offer.from_sid,
+      from_uid = offer.from_uid,
+      from_hands = offer.from_hands,
+      from_name = offer.from_name,
+      to_sid = offer.to_sid,
+      to_uid = offer.to_uid,
+      to_hands = to_hands,
+      to_name = offer.to_name,
+      status = offer.status
+      )
+    result.put()
+    result_id = result.key().id()
+    logging.info("success: %s" % result_id)
+
+    """
+    データを消す
+      offer, alert
+    """
+    offer.delete()
+    alert = tanarky.model.Alert.gql("WHERE offer=:offer", 
+                                    offer=offer_id).get()
+    if alert:
+      alert.delete()
+
+    """
+    Logデータ保存
+    """
+    # 略
+
+    """
+    結果ページにリダイレクト
+    """
+    return self.redirect("/result?id=%s" % result_id)
 
 class PageResult(PageBase):
   def get(self):
-    user = self.decode_u_cookie()
-    if user == None:
+    """
+    データがない場合やresultデータがない場合は、/にリダイレクト
+    閲覧者が、resultの関係者であるかを確認して?
+    ページ表示
+    """
+
+    result_id = self.request.get("id")
+    if result_id == "":
+      return self.redirect("/");
+
+    result = tanarky.model.Result.get_by_id(int(result_id))
+
+    if result == None:
       return self.redirect("/");
 
     tmpl_vars = {}
-    tmpl_vars["name"] = user["name"]
+
+    user = self.decode_u_cookie()
+    if user == None:
+      tmpl_vars["name"] = "guest"
+
+    tmpl_vars["result"] = self.parse_result(result, user)
+
     path = os.path.join(os.path.dirname(__file__),
                         'templates/result.html')
-    self.response.out.write(template.render(path,
-                                            tmpl_vars))
-    return
+    return self.response.out.write(template.render(path,tmpl_vars))
 
 class PageTwitterOffer(PageBase):
   def get(self):
@@ -106,66 +281,158 @@ class PageTwitterOffer(PageBase):
     if user == None:
       return self.redirect("/");
 
-    uid     = self.request.get("uid", "")
-    name    = self.request.get("name", "")
-    account = self.request.get("account", "")
-    req_sig = self.request.get("sig", "")
+    logging.info(user)
 
-    if uid == "" or name == "" or account == "":
+    to_uid     = self.request.get("uid", "")
+    # 表示名 like Satoshi Tanaka
+    to_name    = self.request.get("name", "")
+    # アカウント like tanarky
+    to_account = self.request.get("account", "")
+    req_sig    = self.request.get("sig", "")
+
+    """ 必須パラメータが空の場合は/twitterに戻す """
+    if to_uid == "" or to_name == "" or to_account == "":
       return self.redirect("/twitter");
 
+    """
+    sigチェック
+    """
     helper = tanarky.Helper()
-    s = "/".join([uid,name,account])
+    s = "/".join([to_uid,to_name,to_account])
     sig = helper.get_params_signature(s)
     if sig != req_sig:
       return self.redirect("/twitter");
 
-    #hands = [{"index":1, "rand":1},{}]
+    """
+    すでにofferがある場合はその情報を使う
+    """
+    from_sid = user["main_sid"]
+    from_uid = user["main_uid"]
+    to_sid   = 2
+    key   = "%d-%s:%d-%s" % (from_sid,from_uid,to_sid,to_uid)
+    offer = tanarky.model.Offer.get_by_key_name(key)
     hands = []
-    for i in range(1,4):
-      h = {"index":i, "rand":random.randint(1,3)}
-      hands.append(h)
+    if offer != None:
+      logging.info("offer exist")
+      logging.info(offer)
+      for i in range(1,4):
+        h = {"index":i, "rand":offer.from_hands[i-1]}
+        hands.append(h)
+    else:
+      logging.info("offer NOT exist")
+      for i in range(1,4):
+        h = {"index":i, "rand":random.randint(1,3)}
+        hands.append(h)
 
     tmpl_vars = {}
-    tmpl_vars["name"]    = name
+    tmpl_vars["name"]    = to_name
     tmpl_vars["sid"]     = 2
-    tmpl_vars["uid"]     = uid
-    tmpl_vars["account"] = account
+    tmpl_vars["uid"]     = to_uid
+    tmpl_vars["account"] = to_account
     tmpl_vars["hands"]   = hands
     path = os.path.join(os.path.dirname(__file__),
                         'templates/twitter_offer.html')
-    return self.response.out.write(template.render(path,
-                                                   tmpl_vars))
+    return self.response.out.write(template.render(path,tmpl_vars))
+
   def post(self):
     user = self.decode_u_cookie()
     if user == None:
       return self.redirect("/")
 
-    game_model = tanarky.model.Game(
-      from_sid = user["main_sid"],
-      from_name = user["name"],
-      from_uid = user["uid%d" % user["main_sid"]],
-      from_hands = [int(self.request.get("hand1")),
-                    int(self.request.get("hand2")),
-                    int(self.request.get("hand3"))],
-      to_sid = user["main_sid"],
-      to_uid = self.request.get("uid"),
-      to_name = self.request.get("name"),
-      status = 0
-      )
-    game_model.put()
+    helper   = tanarky.Helper()
+    from_sid = user["main_sid"]
+    from_uid = user["main_uid"]
+    to_sid   = 2
+    to_uid   = self.request.get("uid")
+
+    to_user_exists = False
+    """
+    ここでUserに対戦相手のデータがないか確認
+    あったら、to_sid, to_uidを上書き & to_user_exist = True
+    """
+    user_model = tanarky.model.get_user_by_twitter_uid(to_uid)
+    if user_model != None:
+      to_user_exists = True
+      if user_model.main_sid != 2:
+        to_sid = user_model.main_sid
+        to_uid = user_model.__dict__["uid%d" % to_sid]
+
+    """
+    offerデータ登録
+    """
+    offer_exists = False
+    offer_key = "%d-%s-%d-%s" % (from_sid,from_uid,to_sid,to_uid)
+    offer = tanarky.model.Offer.get_by_key_name(offer_key)
+    if offer != None:
+      offer_exists = True
+      offer.from_sid   = from_sid
+      offer.from_name  = user["name"]
+      offer.from_uid   = from_uid
+      offer.from_hands = [int(self.request.get("hand1")),
+                          int(self.request.get("hand2")),
+                          int(self.request.get("hand3"))]
+      offer.to_sid     = to_sid
+      offer.to_uid     = to_uid
+      offer.to_name    = self.request.get("name")
+      offer.prize      = self.request.get("prize", "")
+      offer.status     = 0
+    else:
+      offer = tanarky.model.Offer(
+        key_name   = offer_key,
+        from_sid   = from_sid,
+        from_name  = user["name"],
+        from_uid   = from_uid,
+        from_hands = [int(self.request.get("hand1")),
+                      int(self.request.get("hand2")),
+                      int(self.request.get("hand3"))],
+        to_sid     = to_sid,
+        to_uid     = to_uid,
+        to_name    = self.request.get("name"),
+        prize      = self.request.get("prize", ""),
+        status     = 0
+        )
+    offer.put()
+    offerk = offer.key()
+    logging.info(offerk.id())
+    logging.info(offerk.name())
+
+    """
+    to_userが存在したら、alertに登録
+    """
+    if to_user_exists == True:
+      link  = "/receive?offer=%s" % urllib.quote(offer_key)
+      title = u"あなたに挑戦状が届いています"
+      body  = u"%sさんから挑戦状が届いています。" % offer.from_name
+      if offer.prize != "":
+        body += u"賞品は「%s」です!" % offer.prize
+
+      alert = tanarky.model.Alert(
+        sid   = to_sid,
+        uid   = to_uid,
+        offer = offerk.name(),
+        link  = link,
+        title = title,
+        body  = body,
+        )
+      alert.put()
+
+    """
+    offerがあったことをtwitterに投稿
+    """
+    user_model = helper.get_user_by_twitter_uid(user["uid2"])
+    logging.error(user_model)
+    client = self.get_oauth_client("twitter")
+    client.tweet(user_model.token2,
+                 user_model.secret2,
+                 u"@%s じゃんけんしようぜ。%s" % (self.request.get("name"),
+                                                  "http://janken.example.com/"))
+    """
+    表示用メッセージ登録して/twitterにリダイレクト
+    """
     msg_cookie = tanarky.cookie.Message()
     msg_str = msg_cookie.encode(body="申し込みを受け付けました")
     msg_cookie.set(value=msg_str,
                    headers=self.response.headers._headers)
-
-    logging.error(user)
-    helper = tanarky.Helper()
-    user_model = helper.get_user_by_twitter_uid(user["uid2"])
-    logging.error(user_model)
-    client = self.get_oauth_client("twitter")
-    client.tweet(user_model.token2, user_model.secret2, self.request.get("bid"))
-
     return self.redirect("/twitter");
 
 class PageFacebookOffer(PageBase):
@@ -292,6 +559,7 @@ class PageTwitter(PageBase):
     tmpl_vars["name"]    = user["name"]
     tmpl_vars["friends"] = f
     tmpl_vars["message"] = self.get_msg_from_cookie()
+    tmpl_vars["alert"]   = self.get_alert(user)
     tmpl_vars["paging"]  = self.get_tmpl_vars_paging(link="/twitter",
                                                      hits=len(fids),
                                                      current=page)
@@ -367,7 +635,8 @@ class PageHome(PageBase):
     else:
       tmpl_path = self.get_tmpl_path('home')
       tmpl_vars["name"]    = user["name"]
-      tmpl_vars["friends"] = range(0,10)
+      tmpl_vars["from_results"] = self.get_results_by_from_user(user)
+      tmpl_vars["to_results"]   = self.get_results_by_to_user(user)
 
     self.response.out.write(template.render(tmpl_path,tmpl_vars))
     return

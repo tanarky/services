@@ -13,12 +13,19 @@ config = ConfigParser.ConfigParser()
 config.read(os.path.join(os.path.dirname(__file__),
                          'oauth.password'))
 
-class Helper():
+class Helper(object):
     def __init__(self):
         self.fql = "https://api.facebook.com/method/fql.query?"
 
+    def get_main_uid(self, user_model):
+        if user_model == None:
+            return None
+
+        if user_model.main_sid == 1:
+            return user_model.uid1
+
     def get_user_by_twitter_uid(self, uid):
-        return tanarky.model.User.gql("WHERE uid2 = :1",uid).get()
+        return tanarky.model.get_user_by_twitter_uid(uid)
 
     def get_user_by_facebook_uid(self, uid):
         return tanarky.model.User.gql("WHERE uid1 = :1",uid).get()
