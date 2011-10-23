@@ -12,6 +12,10 @@ import tanarky.cookie
 import tanarky.model
 
 class PageBase(webapp.RequestHandler):
+  def get_tweet_msg_offer(self, name, offer_id):
+    url = "%s/receive?offer=%s" % (tanarky.config.get("system","domain"), offer_id)
+    return u"@%s じゃんけんしようぜ。%s" % (name,url)
+
   def parse_result(self, result, user=None):
     r = {"id": result.key().id(),
          "from_name": result.from_name,
@@ -82,14 +86,14 @@ class PageBase(webapp.RequestHandler):
 
   def get_oauth_client(self, name):
     if name == "twitter":
-      app_id     = tanarky.config.get("twitter_test", "app_id")
-      app_secret = tanarky.config.get("twitter_test", "app_secret")
+      app_id     = tanarky.config.get("twitter", "app_id")
+      app_secret = tanarky.config.get("twitter", "app_secret")
       return tanarky.oauth.TwitterClient(app_id,
                                          app_secret,
                                          self.request.path_url)
     elif name == "facebook":
-      app_id     = tanarky.config.get("facebook_test", "app_id")
-      app_secret = tanarky.config.get("facebook_test", "app_secret")
+      app_id     = tanarky.config.get("facebook", "app_id")
+      app_secret = tanarky.config.get("facebook", "app_secret")
       return tanarky.oauth.FacebookClient(app_id,
                                           app_secret,
                                           self.request.path_url)
@@ -160,7 +164,12 @@ class PageReceive(PageBase):
     offer_id = self.request.get("offer")
     offer = tanarky.model.Offer.get_by_key_name(offer_id)
     if offer == None:
-      return self.redirect(url)
+      alert = tanarky.model.Alert.gql("WHERE offer=:offer", 
+                                      offer=offer_id).get()
+      if alert:
+        logging.error("offer not exist. but alert exists")
+        alert.delete()
+      return self.redirect("/twitter")
 
     """
     offerデータのto_userと閲覧者が一致しているかを確認
@@ -424,8 +433,8 @@ class PageTwitterOffer(PageBase):
     client = self.get_oauth_client("twitter")
     client.tweet(user_model.token2,
                  user_model.secret2,
-                 u"@%s じゃんけんしようぜ。%s" % (self.request.get("name"),
-                                                  "http://janken.example.com/"))
+                 self.get_tweet_msg_offer(self.request.get("name"),
+                                          offerk.name()))
     """
     表示用メッセージ登録して/twitterにリダイレクト
     """
@@ -731,7 +740,7 @@ class LoginFacebook(PageBase):
   def get(self):
     client = self.get_oauth_client("facebook")
     code   = self.request.get("code")
-    scope  = tanarky.config.get("facebook_test", "scope")
+    scope  = tanarky.config.get("facebook", "scope")
 
     if not code:
       return self.redirect(client.get_authorization_url(scope))

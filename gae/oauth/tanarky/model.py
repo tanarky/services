@@ -67,6 +67,22 @@ class Result(db.Expando):
     created    = db.DateTimeProperty(auto_now_add=True)
     updated    = db.DateTimeProperty(auto_now=True)
 
+class Game(db.Expando):
+    """
+    keyなし
+    """
+    from_sid   = db.IntegerProperty(required=True)
+    from_uid   = db.StringProperty(required=True)
+    from_hands = db.ListProperty(int)
+    from_name  = db.StringProperty(required=True)
+    to_sid     = db.IntegerProperty(required=True)
+    to_uid     = db.StringProperty(required=True)
+    to_hands   = db.ListProperty(int)
+    to_name    = db.StringProperty(required=True)
+    status     = db.IntegerProperty(required=True)
+    created    = db.DateTimeProperty(auto_now_add=True)
+    updated    = db.DateTimeProperty(auto_now=True)
+
 
 class Alert(BaseExpando):
     sid     = db.IntegerProperty(required=True)
