@@ -216,10 +216,10 @@ def get_image_path(seller, code, num, width, height, extint):
         ext = 'jpeg'
 
     S = 'tanarky'
-    return '%02x/%02x/%s/%s-%d-%s-%s.%s' % (binascii.crc32(seller) % 256,
+    return '%02x/%02x/%s/%s-%d-%d-%d.%s' % (binascii.crc32(seller) % 256,
                                             binascii.crc32(seller + S) % 256,
                                             seller, code, num,
-                                            width, height, ext)
+                                            int(width), int(height), ext)
 
 
 @app.route('/SELLER/<seller>/product/<code>/image',methods=["GET","POST"])
@@ -455,10 +455,33 @@ def seller_index(seller):
     return render_template('seller_index.html', T=tmpl_vars)
 
 # seller 商品ページ
-@app.route('/<seller>/product/<product>')
-def seller_product(seller, product):
-    tmpl_vars = {"name":seller, "product":product}
-    return render_template('seller_product.html', T=tmpl_vars)
+@app.route('/<seller>/product/<code>.html')
+def seller_product(seller, code):
+    T = {"sellername":seller, "code":code}
+    ret = seller_tool_check_login(seller, T)
+
+    p = Product.get_by_key_name('%s-%s' % (seller,code))
+    if not p:
+        abort(404)
+
+    T['product'] = p
+    host = "http://localhost:5000/"
+
+    if p.image1:
+        T['imageurl1'] = "%s%s" % (host,
+                                   get_image_path(seller,code,1,300,300,p.image1))
+    else:
+        T['imageurl1'] = 'http://placehold.it/300x300'
+
+    if p.image2:
+        T['imageurl2'] = "%s%s" % (host,
+                                   get_image_path(seller,code,2,120,120,p.image2))
+
+    if p.image3:
+        T['imageurl3'] = "%s%s" % (host,
+                                   get_image_path(seller,code,3,120,120,p.image3))
+
+    return render_template('seller_product.html', T=T)
 
 # seller カスタムページ
 
