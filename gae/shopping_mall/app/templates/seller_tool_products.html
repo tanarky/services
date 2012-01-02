@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}商品一覧 {% endblock %}
+{% block content %}
+
+{% include "_breadcrumbs.html" %}
+
+<h1>商品一覧</h1>
+
+{% if not T.products %}
+<p>商品はありません</p>
+{% else %}
+
+<table class="bordered-table zebra-striped">
+<thead>
+  <tr>
+    <th width="1%">画像</th>
+    <th>情報</th>
+  </tr>
+</thead>
+<tbody>
+
+{% for s in T.products %}
+<tr>
+<td class="media-grid">
+<a href="{{url_for('seller_tool_product_image',seller=s.seller, code=s.code)}}">
+<img class="thumbnail" src="{{ s.imgurl }}">
+</a>
+</td>
+<td style="padding-top:15px">
+<a href="{{url_for('seller_tool_product_edit',seller=s.seller, code=s.code)}}"
+   style="font-size:large;">{{ s.title }}</a><br>
+<span style="color:#aaa">{{ s.code }}<br><br>
+{{ s.desc }}</span>
+</td>
+</tr>
+{% endfor %}
+
+</tbody>
+</table>
+{% endif %}
+
+<a class="btn" href="{{ url_for('seller_tool_product_new', seller=T.sellername) }}">新規商品登録</a>
+
+{% endblock %}

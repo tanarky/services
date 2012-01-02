@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}トップページ - Seller管理ツール{% endblock %}
+{% block content %}
+
+<h1>{{ T.sellername }} - Seller管理ツール </h1>
+
+<div class="row">
+  <div class="span4">
+    <h2>注文管理</h2>
+    <ul>
+      <li><a href="#">注文一覧</a></li>
+      <li><a href="http://www.paypal.com/" target="_blank">Paypal</a></li>
+    </ul>
+  </div>
+  <div class="span4">
+    <h2>商品在庫管理</h2>
+    <ul>
+      <li><a href="{{ url_for('seller_tool_product_new', seller=T.sellername) }}">
+          新規商品情報追加</a></li>
+      <li><a href="{{ url_for('seller_tool_products', seller=T.sellername) }}">登録済み商品一覧</a><br>
+      <li>商品コード検索<br>
+        <form action="" method="GET">
+          <input id="f1_seller" style="margin-bottom:5px;" type="text" size="8" name="code" class="span3">
+          <button class="btn" type="submit">検索</button>
+        </form>
+      </li>
+    </ul>
+  </div>
+  <div class="span4">
+    <h2>ページ管理</h2>
+    <ul>
+      <li><a href="#">共通デザイン編集</a></li>
+      <li><a href="#">カスタムページ追加</a></li>
+      <li><a href="#">登録済みカスタムページ編集</a><br>
+        <form action="" method="GET">
+          <input id="f1_seller" style="margin-bottom:5px;" type="text" size="8" name="page" class="span3">
+          <button class="btn" type="submit">編集</button>
+        </form>
+      </li>
+    </ul>
+  </div>
+
+  <div class="span4">
+    <h2>設定</h2>
+    <ul>
+      <li><a href="#">Seller情報設定</a></li>
+      <li><a href="#">支払い情報設定</a></li>
+      <li><a href="#">管理者権限設定</a></li>
+    </ul>
+  </div>
+<div>
+
+{% endblock %}

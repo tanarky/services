@@ -1,0 +1,5 @@
+{% for category, msg in get_flashed_messages(with_categories=true) %}
+<div class="alert-message block-message {{ category }}">
+  <p>{{ msg|safe }}</p>
+</div>
+{% endfor %}

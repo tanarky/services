@@ -1,0 +1,19 @@
+<div class="topbar">
+  <div class="fill">
+    <div class="container">
+      <a href="/" class="brand">Tanarky Shopping Mall</a>
+
+      <div class="pull-right">
+{% if T.user %}
+      <div id="username" class="pull-left">{{ T.user.nickname() }}</div>
+      <a href="/USER/" class="btn info small">Setting</a>
+      <a href="{{ T.logouturl }}" class="btn small">logout</a>
+{% else %}
+      <div id="username" class="pull-left">Guest</div>
+      <a href="{{ T.loginurl }}" class="btn primary small">login</a>
+{% endif %}
+      </div>
+
+    </div>
+  </div>
+</div>

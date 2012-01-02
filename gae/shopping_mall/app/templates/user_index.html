@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}ユーザ情報ページ{% endblock %}
+{% block content %}
+<h1>ユーザ情報編集ページ</h1>
+
+<h2>あなたのseller</h2>
+
+{% if not T.sellers %}
+<p>まだ作成されていません</p>
+{% else %}
+
+<table class="bordered-table zebra-striped">
+<thead>
+  <tr>
+    <th>#</th>
+    <th>seller name</th>
+    <th>status</th>
+  </tr>
+</thead>
+<tbody>
+{% for s in T.sellers %}
+<tr>
+<td>{{ loop.index }}</td>
+
+{% if s.status == 1 %}
+<td><a href="{{ url_for('seller_tool_index', seller=s.seller) }}">{{ s.seller }}</a></td>
+<td><span class="label success">運用中</span></td>
+{% else %}
+<td>{{ s.seller }}</td>
+<td><span class="label notice">承認待ち</span></td>
+{% endif %}
+
+</tr>
+
+{% endfor %}
+</tbody>
+</table>
+
+{% endif %}
+
+<h2>sellerを新規作成する</h2>
+
+<form action="{{ url_for('user_seller_create') }}" method="POST">
+  <fieldset>
+    <div class="clearfix">
+      <label for="f1_seller">seller name</label>
+      <div class="input">
+        <input id="f1_seller" class="xlarge" type="text" size="30" name="seller">
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn primary" type="submit">Create</button>
+    </div>
+  </fieldset>
+</form>
+
+<h2>既存sellerにアクセス権限の追加申請をする</h2>
+
+<form action="{{ url_for('user_seller_adduser') }}" method="POST">
+  <fieldset>
+    <div class="clearfix">
+      <label for="f1_seller">seller name</label>
+      <div class="input">
+        <input id="f1_seller" class="xlarge" type="text" size="30" name="seller">
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" type="submit">Offer</button>
+    </div>
+
+  </fieldset>
+</form>
+
+{% endblock %}

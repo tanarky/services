@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>create seller {{ T.sellername }}</title>
+  <link rel="stylesheet" href="/static/bootstrap.min.css">
+</head>
+<body>
+
+<div class="container">
+<div class="row">
+<div class="span16">
+<br>
+<form action="/admin/seller/{{ T.sellername }}" method="POST">
+  <fieldset>
+    <legend>create seller {{ T.sellername }}</legend>
+
+    <div class="clearfix">
+      <label for="form_desc">説明文</label>
+      <div class="input">
+        <input id="form_desc" class="xlarge" type="text" size="30" name="desc">
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" type="reset">Cancel</button>
+      <button class="btn primary" type="submit">Create</button>
+    </div>
+
+  </fieldset>
+</form>
+
+</div>
+</div>
+</div>
+</body>
+</html>

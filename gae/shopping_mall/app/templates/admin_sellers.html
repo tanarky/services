@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Seller一覧 - ADMIN{% endblock %}
+{% block content %}
+<h1>Seller一覧ページ - ADMIN</h1>
+
+{% if not T.sellers %}
+<p>まだ作成されていません</p>
+{% else %}
+
+<form action="{{ url_for('admin_sellers') }}" method="POST">
+<fieldset>
+<table class="bordered-table zebra-striped">
+<thead>
+  <tr>
+    <th>#</th>
+    <th>seller_name</th>
+    <th>user_id</th>
+    <th>status</th>
+  </tr>
+</thead>
+<tbody>
+{% for s in T.sellers %}
+<tr>
+<td><input type="checkbox" name="seller" value="{{ s.seller }}"></td>
+<td>{{ s.seller }}</td>
+<td>{{ s.user }}</td>
+{% if s.status == 1 %}
+<td><span class="label success">承認済み</span></td>
+{% else %}
+<td><span class="label notice">承認待ち</span></td>
+{% endif %}
+</tr>
+{% endfor %}
+</tbody>
+</table>
+<div class="actions">
+  <button class="btn primary" type="submit">承認</button>
+</div>
+</fieldset>
+</form>
+
+{% endif %}
+
+{% endblock %}

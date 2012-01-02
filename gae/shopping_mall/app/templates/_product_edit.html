@@ -1,0 +1,88 @@
+<form action="" method="POST">
+  <fieldset>
+
+<div class="clearfix">
+  <label for="product_title">商品タイトル</label>
+  <div class="input">
+    <input id="product_title"
+           class="span10"
+           placeholder="商品タイトル"
+           type="text"
+           value="{{ T.product_title }}"
+           name="product_title">
+    <span class="help-block">50文字以内</span>
+  </div>
+</div>
+
+<div class="clearfix">
+  <label for="product_code">商品コード</label>
+  <div class="input">
+    <input id="product_code"
+           class="span10"{% if T.product_code %} disabled="1"{% endif %}
+           placeholder="code123"
+           type="text"
+           value="{{ T.product_code }}"
+           name="product_code">
+    <span class="help-block">半角英数10文字以内</span>
+  </div>
+</div>
+
+<div class="clearfix">
+  <label for="product_price">商品販売価格</label>
+  <div class="input">
+    <input id="product_price"
+           class="span8"
+           type="text"
+           name="product_price"
+           value="{{ T.product_price }}"
+           placeholder="1000.0">
+    <span class="help-block">半角数値</span>
+  </div>
+</div>
+
+<div class="clearfix">
+  <label for="product_currency">商品価格通貨</label>
+  <div class="input">
+    <select name="product_currency" class="span2">
+      <option value="0"{% if T.product_currency == 0 %} selected="1"{% endif %}>円
+      </option>
+      <option value="1"{% if T.product_currency == 1 %} selected="1"{% endif %}>ドル
+      </option>
+    </select>
+  </div>
+</div>
+
+<div class="clearfix">
+  <label for="product_desc">商品説明</label>
+  <div class="input">
+    <textarea rows="10"
+              name="product_desc"
+              id="product_desc"
+              class="span10">{{ T.product_desc }}</textarea>
+    <span class="help-block">500文字以内、HTML不可、改行有効</span>
+  </div>
+</div>
+
+<div class="clearfix">
+  <label for="product_stock">在庫</label>
+  <div class="input">
+    <input id="product_stock"
+           class="span4"
+           type="text"
+           name="product_stock"
+           value="{{ T.product_stock }}"
+           placeholder="1">
+    <span class="help-block">半角数値</span>
+  </div>
+</div>
+
+    <div class="actions">
+      <a class="btn"
+         type="reset"
+         href="{{url_for('seller_tool_products', seller=T.sellername)}}">
+        Cancel</a>
+      <button class="btn primary" type="submit">保存</button>
+    </div>
+
+  </fieldset>
+</form>

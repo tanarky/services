@@ -1,0 +1,12 @@
+<ul class="breadcrumb">
+{% for b in T.breadcrumbs %}
+{% if b.has_key("url") %}
+  <li>
+    <a href="{{ b.url }}">{{ b.title }}</a>
+    <span class="divider">&gt;</span>
+  </li>
+{% else %}
+  <li class="active">{{ b.title }}</li>
+{% endif %}
+{% endfor %}
+</ul>

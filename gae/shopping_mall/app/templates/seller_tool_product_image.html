@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}画像編集 - Seller管理ツール{% endblock %}
+{% block content %}
+
+{% include "_breadcrumbs.html" %}
+
+<h1>商品画像編集</h1>
+
+{% for x in range(1,4) %}
+{% if T["product_image%d" % x] %}
+<img src="{{ T["product_image%d" % x] }}">
+{% else %}
+<p>画像{{ x }}はありません</p>
+{% endif %}
+
+<form action="{{ T.upload_url }}" method="POST" enctype="multipart/form-data">
+<fieldset>
+
+<div class="clearfix">
+  <label for="product_image{{ x }}">商品画像{{ x }}</label>
+  <div class="input">
+    <input type="hidden" name="product_image_num" value="{{ x }}">
+    <input type="file"
+           name="product_image{{ x }}"
+           id="product_image{{ x }}"
+           class="input-file">
+
+  </div>
+</div>
+<div class="actions">
+  <button class="btn primary" type="submit">保存</button>
+
+</div>
+</fieldset>
+</form>
+{% endfor %}
+
+{% endblock%}
