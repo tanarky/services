@@ -4,7 +4,7 @@ all:
 	python bootstrap.py --distribute && bin/buildout
 
 clean:
-	rm -rf bin/ develop-eggs/ eggs/ parts/ *.egg-info/ .installed.cfg downloads/
+	rm -rf bin/ develop-eggs/ eggs/ parts/ *.egg-info/ .installed.cfg downloads/ app/distlib.zip
 	find . -name "*.pyc" -or -name "*~" | perl -nle unlink
 
 server:

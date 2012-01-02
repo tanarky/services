@@ -26,6 +26,8 @@ pip-log.txt
 .tox
 *.mo
 .mr.developer.cfg
+downloads
+*.zip
 
 # -----------------
 # C/C++
