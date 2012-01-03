@@ -31,16 +31,20 @@ $ {{ "%.2f"|format(T.product.price) }}</p>
 </div>
 
 <div class="span4">
+<form action="{{ T.cart_url }}" method="POST">
+<input type="hidden" name="title" value="{{ T.product.title }}">
+<input type="hidden" name="price" value="{{ T.product.price }}">
 <p>数量 :
 <select class="medium" name="quantity">
-  <option>1</option>
-  <option>2</option>
-  <option>3</option>
-  <option>4</option>
-  <option>5</option>
+  <option value="1">1</option>
+  <option value="2">2</option>
+  <option value="3">3</option>
+  <option value="4">4</option>
+  <option value="5">5</option>
 </select>
 </p>
 <p><button class="btn primary">カートに入れる</button></p>
+</form>
 </div>
 
 {% endblock %}

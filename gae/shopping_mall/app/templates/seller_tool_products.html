@@ -15,6 +15,7 @@
   <tr>
     <th width="1%">画像</th>
     <th>情報</th>
+    <th>操作</th>
   </tr>
 </thead>
 <tbody>
@@ -31,6 +32,18 @@
    style="font-size:large;">{{ s.title }}</a><br>
 <span style="color:#aaa">{{ s.code }}<br><br>
 {{ s.desc }}</span>
+</td>
+<td>
+<p>
+  <a class="btn info small" target="_blank"
+     href="{{ url_for('seller_product', seller=s.seller, code=s.code) }}">
+    商品ページ</a>
+</p>
+<p>
+  <a class="btn danger small"
+     href="#">
+    削除する</a>
+</p>
 </td>
 </tr>
 {% endfor %}

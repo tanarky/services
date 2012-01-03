@@ -6,10 +6,11 @@ sys.path.insert(0, './distlib.zip')
 
 import re,logging,binascii,urllib2
 from google.appengine.ext.webapp.util import run_wsgi_app
-from google.appengine.api import users
+from google.appengine.api import users, memcache
 from google.appengine.ext import db, blobstore
 
-from flask import Flask, render_template, url_for, redirect, abort, make_response, escape, request, flash
+from flask import Flask, render_template, url_for, flash
+from flask import redirect, abort, make_response, escape, request
 from models.seller import Seller, SellerAndUsers
 from models.product import Product, ProductStock
 import helpers.template
@@ -451,8 +452,34 @@ def flash_mes():
 @app.route('/<seller>/')
 @app.route('/<seller>/index.html')
 def seller_index(seller):
-    tmpl_vars = {"name":seller}
-    return render_template('seller_index.html', T=tmpl_vars)
+    T = {'sellername':seller}
+    helpers.template.get_user(T=T, path=request.path)
+
+    products = []
+
+    pp = Product.all().fetch(limit=10)
+    host = "http://localhost:5000/"
+    for p in pp:
+        product = {}
+        product['seller'] = p.seller
+        product['code']   = p.code
+        product['title']  = p.title
+        product['desc']   = p.desc
+        product['price']  = u"%d 円" % p.price
+        if p.image1:
+            path = get_image_path(p.seller,
+                                  p.code,
+                                  1,
+                                  '120',
+                                  '120',
+                                  p.image1)
+            product['imgurl'] = '%s%s' % (host, path)
+        else:
+            product['imgurl'] = 'http://placehold.it/120x120'
+        products.append(product)
+    T["products"] = products
+
+    return render_template('seller_index.html', T=T)
 
 # seller 商品ページ
 @app.route('/<seller>/product/<code>.html')
@@ -481,6 +508,7 @@ def seller_product(seller, code):
         T['imageurl3'] = "%s%s" % (host,
                                    get_image_path(seller,code,3,120,120,p.image3))
 
+    T['cart_url'] = url_for('cart_add', seller=seller, code=p.code)
     return render_template('seller_product.html', T=T)
 
 # seller カスタムページ
@@ -491,27 +519,52 @@ def seller_product(seller, code):
 def seller_403(seller):
     return redirect(url_for('seller_index', seller=seller))
 
-# seller 編集ツール top
+# カートトップ
+@app.route('/CART/<seller>/')
+def cart_index(seller):
+    T = {'sellername':seller}
+    helpers.template.get_user(T=T, path=request.path)
+    if not "user" in T:
+        flash('ログインしてから再度カートに追加してください', category='warning')
+        return redirect(url_for('seller_product', seller=seller, code=code))
 
-# seller 編集ツール items get
-# seller 編集ツール item get
-# seller 編集ツール item put
-# seller 編集ツール item delete
+    cart_cache_key = 'C-%s' % (T["user"].user_id())
+    cart = memcache.get(cart_cache_key)
+    if cart and seller in cart:
+        T["cart"] = helpers.template.calc_cart(cart[seller])
+        logging.error(T["cart"])
+    return render_template('cart_index.html', T=T)
 
-# seller 編集ツール orders get
-# seller 編集ツール order get
+# カートに追加
+@app.route('/CART/<seller>/add/<code>', methods=["POST"])
+def cart_add(seller,code):
+    T = {'sellername':seller}
+    helpers.template.get_user(T=T, path=request.path)
+    if not "user" in T:
+        flash('ログインしてから再度カートに追加してください', category='warning')
+        return redirect(url_for('seller_product', seller=seller, code=code))
 
-# seller 編集ツール common page
+    cart_cache_key = 'C-%s' % (T["user"].user_id())
+    cart = memcache.get(cart_cache_key)
+    if not cart:
+        cart = {seller:{}}
+    elif not seller in cart:
+        cart[seller] = {}
+    else:
+        pass
 
-# seller 編集ツール each page
+    item = {"title":request.form["title"],
+            "price":float(request.form["price"]),
+            "quantity":int(request.form['quantity'])}
+    cart[seller][code] = item
 
-# cart top
+    logging.error(cart)
 
-# cart finish
+    val = {'code':code, 'seller':seller, 'quantity': request.form['quantity']}
 
-# order history
-
-# order list
+    memcache.set(cart_cache_key, cart, 86400)
+    memcache.set('memkey', val, 86400)
+    return redirect(url_for('cart_index', seller=seller))
 
 
 #

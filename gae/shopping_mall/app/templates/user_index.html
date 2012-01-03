@@ -24,7 +24,7 @@
 
 {% if s.status == 1 %}
 <td><a href="{{ url_for('seller_tool_index', seller=s.seller) }}">{{ s.seller }}</a></td>
-<td><span class="label success">運用中</span></td>
+<td><span class="label success">承認済み</span></td>
 {% else %}
 <td>{{ s.seller }}</td>
 <td><span class="label notice">承認待ち</span></td>

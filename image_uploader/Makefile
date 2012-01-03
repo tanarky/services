@@ -10,3 +10,6 @@ clean:
 update_buildout:
 	wget "http://svn.zope.org/*checkout*/zc.buildout/trunk/bootstrap/bootstrap.py"
 
+server:
+	python tanarky-leo/main.py
+

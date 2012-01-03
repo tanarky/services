@@ -19,3 +19,7 @@ div.topbar a.btn {
 td.media-grid a {
     margin:0;
 }
+
+.btn.small {
+    padding: 6px 6px;
+}

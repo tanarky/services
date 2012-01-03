@@ -1,3 +1,4 @@
+{% if T.breadcrumbs %}
 <ul class="breadcrumb">
 {% for b in T.breadcrumbs %}
 {% if b.has_key("url") %}
@@ -10,3 +11,4 @@
 {% endif %}
 {% endfor %}
 </ul>
+{% endif %}
