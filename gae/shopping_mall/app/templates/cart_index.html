@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}ショッピングカート{% endblock %}
+{% block content %}
+
+{% include "_breadcrumbs.html" %}
+
+<h1>ショッピングカート</h1>
+
+{% if T.cart and T.cart.lines %}
+<table class="zebra-striped">
+<thead>
+  <th>title</th>
+  <th>code</th>
+  <th>price</th>
+  <th>quantity</th>
+  <th>total</th>
+</thead>
+{% for line in T.cart.lines %}
+<tr>
+<td>{{ line.title }}</td>
+<td>{{ line.code }}</td>
+<td>{{ line.price }}</td>
+<td>{{ line.quantity }}</td>
+<td>{{ line.total }}</td>
+</tr>
+</tr>
+{% endfor %}
+<tr>
+  <td colspan="4" style="text-align:right"><b>total</b></td>
+  <td>{{ T.cart.total }}</td>
+</tr>
+</table>
+{% else %}
+<p>カートに商品はありません</p>
+{% endif %}
+
+<p style="text-align:center">
+<a href="{{ url_for('seller_index', seller=T.sellername) }}"
+   class="btn">
+店舗トップページに戻る</a></p>
+
+{% endblock%}
