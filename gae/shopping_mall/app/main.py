@@ -4,7 +4,7 @@ import sys, cgi
 sys.path.insert(0, './lib')
 sys.path.insert(0, './distlib.zip')
 
-import re,logging,binascii,urllib2
+import re,logging,binascii,urllib2,random,datetime,json
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.api import users, memcache
 from google.appengine.ext import db, blobstore
@@ -13,6 +13,7 @@ from flask import Flask, render_template, url_for, flash
 from flask import redirect, abort, make_response, escape, request
 from models.seller import Seller, SellerAndUsers
 from models.product import Product, ProductStock
+from models.order import Order
 import helpers.template
 
 app = Flask(__name__)
@@ -135,7 +136,6 @@ def seller_tool_product_new(seller):
                 code     = request.form['product_code'],
                 title    = request.form['product_title'],
                 price    = float(request.form['product_price']),
-                currency = int(request.form['product_currency']),
                 desc     = request.form['product_desc'],
                 )
             new_product.put()
@@ -173,7 +173,6 @@ def seller_tool_product_edit(seller,code):
         T["product_code"]     = product.code
         T["product_price"]    = product.price
         T["product_desc"]     = product.desc
-        T["product_currency"] = product.currency
         T["product_stock"]    = stock.quantity
 
         T["breadcrumbs"] = [{"url":url_for("seller_tool_index",seller=seller),
@@ -194,7 +193,6 @@ def seller_tool_product_edit(seller,code):
             product.title    = request.form['product_title']
             product.desc     = request.form['product_desc']
             product.price    = float(request.form['product_price'])
-            product.currency = int(request.form['product_currency'])
             product.put()
 
             stock.quantity = int(request.form['product_stock'])
@@ -271,7 +269,7 @@ def seller_tool_product_image(seller,code):
             blob = blobstore.BlobInfo.get(blob_key)
 
             logging.error(blob.size)
-            if 262144 < blob.size:
+            if 524288 < blob.size:
                 raise Exception('size error')
 
             logging.error(blob.content_type)
@@ -287,7 +285,7 @@ def seller_tool_product_image(seller,code):
             else:
                 raise Exception('invalid image type: %s' % blob.content_type)
 
-            blob_reader = blobstore.BlobReader(blob_key, buffer_size=262144)
+            blob_reader = blobstore.BlobReader(blob_key, buffer_size=524288)
             imgbody = blob_reader.read()
 
             # thumbsize
@@ -382,7 +380,7 @@ def user_seller_create():
         return redirect(url_for('index'))
 
     p = re.compile(r'^[a-z0-9]{1}[a-z0-9_]{2,31}$')
-    if not p.match(request.form['seller']):
+    if not p.match(request.form['name']):
         flash(u'seller名は半角英数+"_"で構成される32文字以内の文字列です',
               category='warning')
         return redirect(url_for('user_index'))
@@ -390,13 +388,13 @@ def user_seller_create():
     #
     # sellerが存在しないかチェック
     #
-    user   = T["user"].user_id()
-    seller = request.form['seller']
+    user = T["user"].user_id()
+    name = request.form['name']
     exist_seller = SellerAndUsers.gql('WHERE seller = :seller',
-                                      seller=seller,
+                                      seller=name,
                                       keys_only=True).get()
     if exist_seller:
-        flash(u'そのseller名はすでに使用されています', category="warning")
+        flash(u'そのsellerアカウントはすでに使用されています', category="warning")
         return redirect(url_for('user_index'))
 
     #
@@ -406,12 +404,12 @@ def user_seller_create():
                                    user=user,
                                    keys_only=True).fetch(3)
     if len(exist_rec) == 3:
-        flash(u'作成できるのは、お一人様 3 sellerまでです', category="warning")
+        flash(u'1ユーザ3店舗までです', category="warning")
         return redirect(url_for('user_index'))
 
     new_seller_and_users = SellerAndUsers(
-        key_name = seller + "-" + user,
-        seller   = seller,
+        key_name = name + "-" + user,
+        seller   = name,
         user     = user,
         grant    = 1, # owner
         status   = 0, # created
@@ -419,8 +417,10 @@ def user_seller_create():
     new_seller_and_users.put()
 
     new_seller = Seller(
-        key_name = seller,
-        name     = seller,
+        key_name = name,
+        name     = name,
+        title    = request.form['title'],
+        currency = int(request.form['currency']),
         status   = 0, # hidden
         )
     new_seller.put()
@@ -439,14 +439,6 @@ def index():
     helpers.template.get_user(T=T, path=request.path)
 
     return render_template('index.html', T=T)
-
-@app.route('/flash')
-def flash_mes():
-    flash('test error message', category='error')
-    flash('test success message', category='success')
-    flash('test info message', category='info')
-    flash('test warning message', category='warning')
-    return redirect(url_for('index'))
 
 # seller top ページ
 @app.route('/<seller>/')
@@ -487,10 +479,15 @@ def seller_product(seller, code):
     T = {"sellername":seller, "code":code}
     ret = seller_tool_check_login(seller, T)
 
+    s = Seller.get_by_key_name('%s' % seller)
+    if not 2:
+        abort(404)
+
     p = Product.get_by_key_name('%s-%s' % (seller,code))
     if not p:
         abort(404)
 
+    T['seller']  = s
     T['product'] = p
     host = "http://localhost:5000/"
 
@@ -550,8 +547,6 @@ def cart_add(seller,code):
         cart = {seller:{}}
     elif not seller in cart:
         cart[seller] = {}
-    else:
-        pass
 
     item = {"title":request.form["title"],
             "price":float(request.form["price"]),
@@ -560,12 +555,98 @@ def cart_add(seller,code):
 
     logging.error(cart)
 
-    val = {'code':code, 'seller':seller, 'quantity': request.form['quantity']}
-
     memcache.set(cart_cache_key, cart, 86400)
-    memcache.set('memkey', val, 86400)
     return redirect(url_for('cart_index', seller=seller))
 
+# カート注文前最終確認
+# FIXME: try except
+@app.route('/CART/<seller>/confirm', methods=['GET','POST'])
+def cart_confirm(seller):
+    T = {'sellername':seller}
+    helpers.template.get_user(T=T, path=request.path)
+    if not "user" in T:
+        flash('ログインしてから再度カートに追加してください', category='warning')
+        return redirect(url_for('seller_index', seller=seller))
+
+    cart_cache_key = 'C-%s' % (T["user"].user_id())
+    cart = memcache.get(cart_cache_key)
+    if not cart or not seller in cart:
+        flash('カートが空です', category='warning')
+        return redirect(url_for('cart_index', seller=seller))
+
+    if request.method == 'POST':
+        # 入力チェック
+        # FIXME: flask-wtformsを使う
+
+        cart['BUYER'] = {"mail": request.form["mail"],
+                         "note": request.form["note"],
+                         'ship':{"country":request.form["country"],
+                                 "postalcode":request.form["postalcode"],
+                                 "pref":request.form["pref"],
+                                 "city":request.form["city"],
+                                 "addr1":request.form["addr1"],
+                                 "addr2":request.form["addr2"]}}
+        memcache.set(cart_cache_key, cart, 86400)
+
+        return redirect(url_for('cart_confirm', seller=seller))
+    else:
+        T["cart"]  = helpers.template.calc_cart(cart[seller])
+        T['buyer'] = cart["BUYER"]
+        return render_template('cart_confirm.html', T=T)
+
+# カート注文完了処理
+@app.route('/CART/<seller>/finalize', methods=['POST'])
+def cart_finalize(seller):
+    T = {'sellername':seller}
+    helpers.template.get_user(T=T, path=request.path)
+    if not "user" in T:
+        flash('ログインしてから再度カートに追加してください', category='warning')
+        return redirect(url_for('cart_index', seller=seller))
+
+    # FIXME: ブラウザ2重起動によるセッション情報の変更検知
+
+    cart_cache_key = 'C-%s' % (T["user"].user_id())
+    cart = memcache.get(cart_cache_key)
+    if not cart or not seller in cart:
+        flash('カートが空です', category='warning')
+        return redirect(url_for('cart_index', seller=seller))
+
+    content = {"cart":helpers.template.calc_cart(cart[seller]),
+               "buyer":cart["BUYER"]}
+
+    key_name = "-".join([seller,
+                         T["user"].user_id(),
+                         datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S'),
+                         str(random.randint(0,256))])
+    order = Order(key_name = key_name,
+                  seller = seller,
+                  buyer  = T["user"].user_id(),
+                  content = unicode(json.dumps(content)),
+                  status = 0)
+    order.put()
+
+    del(cart[seller])
+    memcache.set(cart_cache_key, cart, 86400)
+
+    return redirect(url_for('cart_finished', seller=seller))
+
+# カート注文完了画面
+@app.route('/CART/<seller>/finished')
+def cart_finished(seller):
+    T = {'sellername':seller}
+    helpers.template.get_user(T=T, path=request.path)
+    if not "user" in T:
+        flash('ログインしてから再度カートに追加してください', category='warning')
+        return redirect(url_for('seller_product', seller=seller, code=code))
+
+    # FIXME: URL直叩き対策
+
+    return render_template('cart_finished.html', T=T)
+
+# TODO: 注文履歴(User)
+# TODO: 注文履歴(Seller)
+# TODO: 注文履歴一覧(User)
+# TODO: 注文履歴一覧(Seller)
 
 #
 # error pages

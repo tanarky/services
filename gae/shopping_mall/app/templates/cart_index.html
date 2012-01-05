@@ -9,11 +9,13 @@
 {% if T.cart and T.cart.lines %}
 <table class="zebra-striped">
 <thead>
+  <tr>
   <th>title</th>
   <th>code</th>
   <th>price</th>
   <th>quantity</th>
   <th>total</th>
+  </tr>
 </thead>
 {% for line in T.cart.lines %}
 <tr>
@@ -30,13 +32,137 @@
   <td>{{ T.cart.total }}</td>
 </tr>
 </table>
-{% else %}
-<p>カートに商品はありません</p>
-{% endif %}
 
+<h2>購入者情報</h2>
+
+<form action="{{ url_for('cart_confirm', seller=T.sellername) }}" method="POST">
+  <fieldset>
+
+<div class="clearfix">
+  <label for="mail">メールアドレス</label>
+  <div class="input">
+    <input id="mail"
+           class="span6"
+           placeholder="sample@example.com"
+           type="text"
+           value="{{ T.user.email() }}"
+           name="mail">
+    <span class="help-block">店舗側と連絡を取るためのメールアドレス</span>
+  </div>
+</div>
+
+<div class="clearfix">
+  <label for="note">備考欄</label>
+  <div class="input">
+    <input id="note"
+           class="span12"
+           placeholder="店舗側への連絡欄"
+           type="text"
+           value=""
+           name="note">
+    <span class="help-block">注文時に店舗側に連絡したいこと</span>
+  </div>
+</div>
+
+<h3>配送先情報</h3>
+
+<div class="clearfix">
+  <label for="country">国</label>
+  <div class="input">
+    <select name="country" class="span2">
+      <option value="jp">日本</option>
+      <option value="us">アメリカ合衆国</option>
+    </select>
+  </div>
+</div>
+
+<div class="clearfix">
+  <label for="postalcode">郵便番号</label>
+  <div class="input">
+    <input id="postalcode"
+           class="span2"
+           placeholder="111-1111"
+           type="text"
+           value=""
+           name="postalcode">
+  </div>
+</div>
+
+<div class="clearfix">
+  <label for="pref">都道府県</label>
+  <div class="input">
+    <input id="pref"
+           class="span4"
+           placeholder="東京都"
+           type="text"
+           value=""
+           name="pref">
+  </div>
+</div>
+
+<div class="clearfix">
+  <label for="city">市区町村</label>
+  <div class="input">
+    <input id="city"
+           class="span4"
+           placeholder="港区"
+           type="text"
+           value=""
+           name="city">
+  </div>
+</div>
+
+<div class="clearfix">
+  <label for="addr1">番地</label>
+  <div class="input">
+    <input id="addr1"
+           class="span12"
+           placeholder="六本木１-２-３"
+           type="text"
+           value=""
+           name="addr1">
+  </div>
+</div>
+
+<div class="clearfix">
+  <label for="addr2">ビル名など</label>
+  <div class="input">
+    <input id="addr2"
+           class="span12"
+           placeholder="ミッドタウン1F"
+           type="text"
+           value=""
+           name="addr2">
+  </div>
+</div>
+
+<!--
+<div class="clearfix">
+  <div class="input">
+    <input type="checkbox" value="option1" name="optionsCheckboxes" checked="1">
+    <span>住所情報を保存する</span>
+  </div>
+</div>
+-->
+
+  <p style="text-align:center">
+    <a href="{{ url_for('seller_index', seller=T.sellername) }}"
+       class="btn">
+      買い物を続ける</a>
+    <button class="btn primary" type="submit">入力内容の確認</button>
+  </p>
+
+  </fieldset>
+</form>
+
+{% else %}
+<p>買い物かごに商品は入っていません</p>
 <p style="text-align:center">
-<a href="{{ url_for('seller_index', seller=T.sellername) }}"
-   class="btn">
-店舗トップページに戻る</a></p>
+  <a href="{{ url_for('seller_index', seller=T.sellername) }}"
+     class="btn">
+    店舗トップページへ</a>
+</p>
+
+{% endif %}
 
 {% endblock%}

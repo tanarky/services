@@ -8,10 +8,8 @@ key_name = seller + code
 class Product(db.Expando):
     seller  = db.StringProperty(required=True)
     code    = db.StringProperty(required=True)
-    title   = db.StringProperty(required=True)
+    title   = db.StringProperty(required=True, default='')
     price   = db.FloatProperty(required=True)
-    # 0=Yen, 1=Doller
-    currency= db.IntegerProperty(required=True)
     desc    = db.TextProperty(required=False)
     # 1=jpeg, 2=png, 3=gif
     image1  = db.IntegerProperty(required=False, default=0)

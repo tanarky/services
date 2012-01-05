@@ -17,9 +17,9 @@
 <div class="span6">
 <h1>{{ T.product.title }}</h1>
 <p>価格 : 
-{% if T.product.currency == 0 %}
+{% if T.seller.currency == 0 %}
 {{ T.product.price|int }} 円
-{% elif T.product.currency == 1 %}
+{% elif T.seller.currency == 1 %}
 $ {{ "%.2f"|format(T.product.price) }}</p>
 {% endif %}
 </p>

@@ -3,7 +3,7 @@
 {% block content %}
 <h1>ユーザ情報編集ページ</h1>
 
-<h2>あなたのseller</h2>
+<h2>あなたの店舗</h2>
 
 {% if not T.sellers %}
 <p>まだ作成されていません</p>
@@ -13,7 +13,7 @@
 <thead>
   <tr>
     <th>#</th>
-    <th>seller name</th>
+    <th>seller account</th>
     <th>status</th>
   </tr>
 </thead>
@@ -38,23 +38,44 @@
 
 {% endif %}
 
-<h2>sellerを新規作成する</h2>
+<h2>あなたの新規店舗アカウントを申請する</h2>
 
 <form action="{{ url_for('user_seller_create') }}" method="POST">
   <fieldset>
+
     <div class="clearfix">
-      <label for="f1_seller">seller name</label>
+      <label for="new_name">account</label>
       <div class="input">
-        <input id="f1_seller" class="xlarge" type="text" size="30" name="seller">
+        <input id="new_name" class="" type="text" size="30" name="name">
+        <span class="help-block">半角英数32文字以内</span>
       </div>
     </div>
+
+    <div class="clearfix">
+      <label for="new_title">店舗名</label>
+      <div class="input">
+        <input id="new_title" class="" type="text" size="30" name="title">
+        <span class="help-block">50文字以内</span>
+      </div>
+    </div>
+
+<div class="clearfix">
+  <label for="currency">通貨</label>
+  <div class="input">
+    <select name="currency" class="span2">
+      <option value="0">円</option>
+      <option value="1">ドル</option>
+    </select>
+  </div>
+</div>
+
     <div class="actions">
       <button class="btn primary" type="submit">Create</button>
     </div>
   </fieldset>
 </form>
 
-<h2>既存sellerにアクセス権限の追加申請をする</h2>
+<h2>すでに存在する店舗アカウントにアクセス権限の追加申請をする</h2>
 
 <form action="{{ url_for('user_seller_adduser') }}" method="POST">
   <fieldset>

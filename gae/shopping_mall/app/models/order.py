@@ -3,7 +3,7 @@
 from google.appengine.ext import db
 
 """
-key_name = seller + "-YYYYmmddhhmmss-" + str(rand(0, 256))
+key_name = seller + "-YYYY-mm-dd-hh-mm-ss-" + str(rand(0, 256))
 """
 class Order(db.Expando):
     seller  = db.StringProperty(required=True)

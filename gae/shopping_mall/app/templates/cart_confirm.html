@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}ショッピングカート{% endblock %}
+{% block content %}
+
+<h1>注文内容の確認</h1>
+
+<h2>かごの中身</h2>
+<table class="zebra-striped">
+<thead>
+  <th>title</th>
+  <th>code</th>
+  <th>price</th>
+  <th>quantity</th>
+  <th>total</th>
+</thead>
+{% for line in T.cart.lines %}
+<tr>
+<td>{{ line.title }}</td>
+<td>{{ line.code }}</td>
+<td>{{ line.price }}</td>
+<td>{{ line.quantity }}</td>
+<td>{{ line.total }}</td>
+</tr>
+</tr>
+{% endfor %}
+<tr>
+  <td colspan="4" style="text-align:right"><b>total</b></td>
+  <td>{{ T.cart.total }}</td>
+</tr>
+</table>
+
+<h2>注文内容</h2>
+<table class="bordered-table">
+<thead>
+  <tr>
+    <th>項目</th>
+    <th>値</th>
+  </tr>
+</thead>
+<tbody>
+  <tr><td>mail</td><td>{{ T.buyer.mail }}</td></tr>
+  <tr><td>note</td><td>{{ T.buyer.note }}</td></tr>
+  <tr><td>国名    </td><td>{{ T.buyer.ship.country }}</td></tr>
+  <tr><td>郵便番号</td><td>{{ T.buyer.ship.postalcode }}</td></tr>
+  <tr><td>都道府県</td><td>{{ T.buyer.ship.pref }}</td></tr>
+  <tr><td>市区町村</td><td>{{ T.buyer.ship.city }}</td></tr>
+  <tr><td>住所  1 </td><td>{{ T.buyer.ship.addr1 }}</td></tr>
+  <tr><td>住所  2 </td><td>{{ T.buyer.ship.addr2 }}</td></tr>
+</tbody>
+</table>
+
+<form action="{{ url_for('cart_finalize', seller=T.sellername) }}" method="POST">
+  <fieldset>
+  <p style="text-align:center">
+    <a href="{{ url_for('seller_index', seller=T.sellername) }}"
+       class="btn">
+      戻る</a>
+    <button class="btn primary" type="submit">注文確定</button>
+  </p>
+  </fieldset>
+</form>
+
+{% endblock%}
