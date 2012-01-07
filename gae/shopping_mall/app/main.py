@@ -111,6 +111,47 @@ def seller_tool_index(seller):
     seller_tool_check_new_order(T)
     return render_template('seller_tool_index.html', T=T)
 
+@app.route('/SELLER/<seller>/orders')
+def seller_tool_orders(seller):
+    T = {"sellername":seller}
+    ret = seller_tool_check_login(seller, T)
+    if ret is not True:
+        return ret
+
+    orders = Order.gql('where seller=:seller', seller=seller).fetch(limit=10)
+    T['orders'] = orders
+    T["breadcrumbs"] = [{"url":url_for("seller_tool_index",seller=seller),
+                         "title":u"ツールトップ"},
+                        {"title":u"注文一覧"}]
+
+    return render_template('seller_tool_orders.html', T=T)
+
+@app.route('/SELLER/<seller>/orders/<orderid>', methods=['GET','POST'])
+def seller_tool_orders_edit(seller,orderid):
+    T = {"sellername":seller}
+    ret = seller_tool_check_login(seller, T)
+    if ret is not True:
+        return ret
+    order = Order.get_by_key_name(orderid)
+    if not order:
+        return redirect('seller_tool_orders', seller=seller)
+
+    if request.method == 'POST':
+        order.status = int(request.form['status'])
+        order.put()
+        flash(u'注文ステータスを更新しました', category='success')
+
+    T['order'] = order
+    T["cart"] = json.loads(order.cart)
+
+    T["breadcrumbs"] = [{"url":url_for("seller_tool_index",seller=seller),
+                         "title":u"ツールトップ"},
+                        {"title":u"注文一覧",
+                         "url":url_for('seller_tool_orders',seller=seller)},
+                        {"title":order.key().name()}]
+
+    return render_template('seller_tool_orders_edit.html', T=T)
+
 @app.route('/SELLER/<seller>/product/new', methods=['GET','POST'])
 def seller_tool_product_new(seller):
     T = {"sellername":seller}
@@ -326,7 +367,7 @@ def seller_tool_products(seller):
 
     products = []
 
-    pp = Product.all().fetch(limit=10)
+    pp = Product.gql('where seller=:seller', seller=seller).fetch(limit=10)
     for p in pp:
         product = {}
         product['seller'] = p.seller
@@ -600,7 +641,7 @@ def cart_finalize(seller):
     T = {'sellername':seller}
     helpers.template.get_user(T=T, path=request.path)
     if not "user" in T:
-        flash('ログインしてから再度カートに追加してください', category='warning')
+        flash(u'ログインしてから再度カートに追加してください', category='warning')
         return redirect(url_for('cart_index', seller=seller))
 
     # FIXME: ブラウザ2重起動によるセッション情報の変更検知
@@ -608,21 +649,51 @@ def cart_finalize(seller):
     cart_cache_key = 'C-%s' % (T["user"].user_id())
     cart = memcache.get(cart_cache_key)
     if not cart or not seller in cart:
-        flash('カートが空です', category='warning')
+        flash(u'カートが空です', category='warning')
         return redirect(url_for('cart_index', seller=seller))
 
-    content = {"cart":helpers.template.calc_cart(cart[seller]),
-               "buyer":cart["BUYER"]}
+    has_error = None
+    reserved  = {}
+    for code, item in cart[seller].items():
+        stock = ProductStock.get_by_key_name("%s-%s" % (seller, code))
+        stock.quantity -= item['quantity']
+        if stock.quantity < 0:
+            has_error = code
+            break
+        stock.put()
+        reserved[code] = item['quantity']
+
+    if has_error:
+        for code, quatity in reserved.items():
+            stock = ProductStock.get_by_key_name("%s-%s" % (seller, code))
+            stock.quantity += quantity
+            stock.put()
+        flash(u'商品コード %s の在庫がなくなりました' % has_error,
+              category='warning')
+        return redirect(url_for('cart_index', seller=seller))
+    
+    content = {"cart" : helpers.template.calc_cart(cart[seller]),
+               "buyer": cart["BUYER"]}
 
     key_name = "-".join([seller,
                          T["user"].user_id(),
                          datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S'),
                          str(random.randint(0,256))])
+
     order = Order(key_name = key_name,
-                  seller = seller,
-                  buyer  = T["user"].user_id(),
-                  content = unicode(json.dumps(content)),
-                  status = 0)
+                  cart = unicode(json.dumps(helpers.template.calc_cart(cart[seller]))),
+                  seller   = seller,
+                  status   = 0)
+
+    order.buyer_mail = cart["BUYER"]["mail"]
+    order.buyer_note = cart["BUYER"]["note"]
+    order.buyer_ship_country    = cart["BUYER"]["ship"]['country']
+    order.buyer_ship_postalcode = cart["BUYER"]["ship"]['postalcode']
+    order.buyer_ship_pref       = cart["BUYER"]["ship"]['pref']
+    order.buyer_ship_city       = cart["BUYER"]["ship"]['city']
+    order.buyer_ship_addr1      = cart["BUYER"]["ship"]['addr1']
+    order.buyer_ship_addr2      = cart["BUYER"]["ship"]['addr2']
+
     order.put()
 
     del(cart[seller])

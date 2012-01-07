@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}注文情報{% endblock %}
+{% block content %}
+
+{% include "_breadcrumbs.html" %}
+
+<h1>注文情報</h1>
+
+<h2>かごの中身</h2>
+<table class="zebra-striped">
+<thead>
+  <tr>
+    <th>title</th>
+    <th>code</th>
+    <th>price</th>
+    <th>quantity</th>
+    <th>total</th>
+  </tr>
+</thead>
+<tbody>
+{% if T.cart %}
+{% for line in T.cart.lines %}
+<tr>
+<td>{{ line.title }}</td>
+<td>{{ line.code }}</td>
+<td>{{ line.price }}</td>
+<td>{{ line.quantity }}</td>
+<td>{{ line.total }}</td>
+</tr>
+</tr>
+{% endfor %}
+<tr>
+  <td colspan="4" style="text-align:right"><b>total</b></td>
+  <td>{{ T.cart.total }}</td>
+</tr>
+{% endif %}
+</tbody>
+</table>
+
+<h2>注文内容</h2>
+
+<form action="" method="POST">
+  <fieldset>
+
+<div class="clearfix">
+  <label for="status">ステータス</label>
+  <div class="input">
+    <select name="status" class="span2">
+      <option value="0"{% if T.order.status == 0 %} selected="1"{% endif %}>新規注文</option>
+      <option value="1"{% if T.order.status == 1 %} selected="1"{% endif %}>支払い待ち</option>
+      <option value="2"{% if T.order.status == 2 %} selected="1"{% endif %}>配送前</option>
+      <option value="9"{% if T.order.status == 9 %} selected="1"{% endif %}>完了</option>
+    </select>
+    <button class="btn primary" type="submit">変更</button>
+  </div>
+</div>
+
+  </fieldset>
+</form>
+
+<table class="bordered-table zebra-striped">
+<thead>
+  <tr>
+    <th>項目</th>
+    <th>値</th>
+  </tr>
+</thead>
+<tbody>
+  <tr><td>メールアドレス</td><td>{{ T.order.buyer_mail }}</td></tr>
+  <tr><td>備考欄  </td><td>{{ T.order.buyer_note }}</td></tr>
+  <tr><td>国名    </td><td>{{ T.order.buyer_ship_country }}</td></tr>
+  <tr><td>郵便番号</td><td>{{ T.order.buyer_ship_postalcode }}</td></tr>
+  <tr><td>都道府県</td><td>{{ T.order.buyer_ship_pref }}</td></tr>
+  <tr><td>市区町村</td><td>{{ T.order.buyer_ship_city }}</td></tr>
+  <tr><td>住所  1 </td><td>{{ T.order.buyer_ship_addr1 }}</td></tr>
+  <tr><td>住所  2 </td><td>{{ T.order.buyer_ship_addr2 }}</td></tr>
+</tbody>
+</table>
+
+{% endblock%}

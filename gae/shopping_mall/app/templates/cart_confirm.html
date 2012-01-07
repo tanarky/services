@@ -30,7 +30,7 @@
 </table>
 
 <h2>注文内容</h2>
-<table class="bordered-table">
+<table class="bordered-table zebra-striped">
 <thead>
   <tr>
     <th>項目</th>
@@ -38,8 +38,8 @@
   </tr>
 </thead>
 <tbody>
-  <tr><td>mail</td><td>{{ T.buyer.mail }}</td></tr>
-  <tr><td>note</td><td>{{ T.buyer.note }}</td></tr>
+  <tr><td>メールアドレス</td><td>{{ T.buyer.mail }}</td></tr>
+  <tr><td>備考欄  </td><td>{{ T.buyer.note }}</td></tr>
   <tr><td>国名    </td><td>{{ T.buyer.ship.country }}</td></tr>
   <tr><td>郵便番号</td><td>{{ T.buyer.ship.postalcode }}</td></tr>
   <tr><td>都道府県</td><td>{{ T.buyer.ship.pref }}</td></tr>

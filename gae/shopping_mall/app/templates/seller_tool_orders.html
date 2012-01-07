@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}注文一覧 {% endblock %}
+{% block content %}
+
+{% include "_breadcrumbs.html" %}
+
+<h1>注文一覧</h1>
+
+{% if not T.orders %}
+<p>商品はありません</p>
+{% else %}
+
+<table class="bordered-table zebra-striped">
+<thead>
+  <tr>
+    <th width="1%">注文番号</th>
+    <th>注文者情報</th>
+    <th>ステータス</th>
+  </tr>
+</thead>
+<tbody>
+
+{% for o in T.orders %}
+<tr>
+<td>
+<a href="{{ url_for('seller_tool_orders_edit', seller=T.sellername, orderid=o.key().name()) }}">
+{{ o.key().name() }}
+</a>
+</td>
+<td>
+{{ o.buyer_mail }}
+</td>
+<td>
+{% if o.status == 0 %}
+<span class="label success">新規注文</span>
+{% endif %}
+</td>
+</tr>
+{% endfor %}
+
+</tbody>
+</table>
+{% endif %}
+
+{% endblock %}

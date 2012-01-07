@@ -41,17 +41,6 @@
 </div>
 
 <div class="clearfix">
-  <label for="product_desc">商品説明</label>
-  <div class="input">
-    <textarea rows="10"
-              name="product_desc"
-              id="product_desc"
-              class="span10">{{ T.product_desc }}</textarea>
-    <span class="help-block">500文字以内、HTML不可、改行有効</span>
-  </div>
-</div>
-
-<div class="clearfix">
   <label for="product_stock">在庫</label>
   <div class="input">
     <input id="product_stock"
@@ -61,6 +50,17 @@
            value="{{ T.product_stock }}"
            placeholder="1">
     <span class="help-block">半角数値</span>
+  </div>
+</div>
+
+<div class="clearfix">
+  <label for="product_desc">商品説明</label>
+  <div class="input">
+    <textarea rows="10"
+              name="product_desc"
+              id="product_desc"
+              class="span10">{{ T.product_desc }}</textarea>
+    <span class="help-block">500文字以内、HTML不可、改行有効</span>
   </div>
 </div>
 
