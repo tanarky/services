@@ -21,6 +21,8 @@ TODO
 - 外部URL（商品詳細情報）
 - メール送信機能
 - INDEXをどうするか
+- download 商品の注文管理
+- oauth2
 
 software design
 ------------------------

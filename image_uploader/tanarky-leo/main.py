@@ -1,4 +1,7 @@
 # coding: utf-8
+
+# version 0.0.1
+
 from flask import Flask,request,abort
 import logging,binascii,ConfigParser,os.path,sys
 import os
