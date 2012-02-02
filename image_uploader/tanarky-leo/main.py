@@ -2,7 +2,7 @@
 
 # version 0.0.1
 
-from flask import Flask,request,abort,make_response
+from flask import Flask,request,abort,make_response,render_template
 import logging,binascii,ConfigParser,os.path,sys
 import os,json
 from operator import methodcaller
@@ -11,7 +11,7 @@ import Image, StringIO
 config = ConfigParser.ConfigParser()
 config.read('/etc/tanarky/leo/leo.conf')
 
-VERSION = '1.0.1'
+VERSION = '1.0.3'
 ROOT = config.get("data","root")
 SEED = config.get("data","seed")
 NUM  = int(config.get("data","num"))
@@ -26,6 +26,22 @@ def group2path(g):
 @app.route('/')
 def index():
     return VERSION
+
+@app.route('/list')
+def list():
+    try:
+        world    = request.args['world']
+        group    = request.args['group']
+        hashpath = group2path(group)
+        path     = u'%s/%s/%s' % (ROOT, world, hashpath)
+
+        T = {}
+        T['url']   = u'http://%s.tanarky.com/%s/' % (world, hashpath)
+        T['files'] = os.listdir(path)
+        return render_template('list.html', T=T)
+    except:
+        logging.error(sys.exc_info())
+        return abort(400)
 
 @app.route('/upload', methods=['PUT', 'GET', 'DELETE'])
 def upload():
@@ -76,6 +92,9 @@ def upload():
 
             if not resizes:
                 filepath = u"%s/%s.%s" % (path, name, filetype)
+                logging.debug(path)
+                logging.debug(name)
+                logging.debug(filepath)
                 f = open(filepath, 'w')
                 f.write(data)
                 f.close()
