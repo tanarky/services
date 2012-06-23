@@ -11,7 +11,7 @@ import Image, StringIO
 config = ConfigParser.ConfigParser()
 config.read('/etc/tanarky/leo/leo.conf')
 
-VERSION = '1.0.3'
+VERSION = '1.1.0'
 ROOT = config.get("data","root")
 SEED = config.get("data","seed")
 NUM  = int(config.get("data","num"))
@@ -25,7 +25,12 @@ def group2path(g):
 
 @app.route('/')
 def index():
-    return VERSION
+    data = {'version':VERSION,
+            'ip':request.remote_addr,
+            'ua':request.headers.get('User-Agent')}
+    response = make_response(json.dumps(data))
+    response.headers['Content-type'] = u'application/json; charset=utf-8;'
+    return response
 
 @app.route('/list')
 def list():
